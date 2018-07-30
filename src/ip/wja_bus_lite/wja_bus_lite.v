@@ -262,7 +262,7 @@ module wja_bus_lite
             3'h3   : reg_data_out <= 32'hdeadbeef; // R3;
             3'h4   : reg_data_out <= 32'h12345678; // R4;
             3'h5   : reg_data_out <= 32'h87654321; // R5;
-            3'h6   : reg_data_out <= 32'h07301559; // R6;
+            3'h6   : reg_data_out <= 32'h07301713; // R6;
             3'h7   : reg_data_out <= 0; // R7;
             default : reg_data_out <= 0;
         endcase
