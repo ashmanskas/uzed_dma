@@ -6,7 +6,6 @@ ipx::infer_core -vendor user.org -library user -taxonomy /UserIP \
 ipx::edit_ip_in_project -upgrade true -name edit_ip_project \
     -directory $dir/project/proj.tmp $dir/ip_repo/wja_axis/component.xml
 ipx::current_core $dir/ip_repo/wja_axis/component.xml
-update_compile_order -fileset sources_1
 set_property core_revision 2 [ipx::current_core]
 ipx::create_xgui_files [ipx::current_core]
 ipx::update_checksums [ipx::current_core]
@@ -20,7 +19,6 @@ ipx::infer_core -vendor user.org -library user -taxonomy /UserIP \
 ipx::edit_ip_in_project -upgrade true -name edit_ip_project \
     -directory $dir/project/proj.tmp $dir/ip_repo/wja_bus_lite/component.xml
 ipx::current_core $dir/ip_repo/wja_bus_lite/component.xml
-update_compile_order -fileset sources_1
 set_property core_revision 2 [ipx::current_core]
 ipx::create_xgui_files [ipx::current_core]
 ipx::update_checksums [ipx::current_core]
@@ -37,7 +35,6 @@ update_ip_catalog
 # ----------------------------------------------------------------------
 
 create_bd_design bd
-update_compile_order -fileset sources_1
 startgroup
 create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 \
     processing_system7_0
@@ -73,7 +70,6 @@ apply_bd_automation -rule xilinx.com:bd_rule:axi4 \
     [get_bd_intf_pins axi_dma_0/S_AXI_LITE]
 regenerate_bd_layout
 
-update_compile_order -fileset sources_1
 startgroup
 create_bd_cell -type ip -vlnv user.org:user:wja_axis:1.0 wja_axis_0
 endgroup
@@ -97,5 +93,8 @@ make_wrapper -top \
     -files [get_files $dir/project/project.srcs/sources_1/bd/bd/bd.bd]
 add_files -norecurse \
     $dir/project/project.srcs/sources_1/bd/bd/hdl/bd_wrapper.v
+add_files -norecurse \
+    $dir/src/hdl/top.v
+update_compile_order -fileset sources_1
 launch_runs impl_1 -to_step write_bitstream -jobs 4
 wait_on_run impl_1
