@@ -3,7 +3,7 @@
 
 module wja_bus_lite
     (
-     // output wire [31:0] reg0,
+     output wire [31:0] reg0,
      // output wire [31:0] reg1,
      // output wire [31:0] reg2,
      // input  wire [31:0] R3,
@@ -281,7 +281,7 @@ module wja_bus_lite
             end   
         end
     end    
-    // assign reg0 = slv_reg0;
+    assign reg0 = slv_reg0;
     // assign reg1 = slv_reg1;
     // assign reg2 = slv_reg2;
 endmodule

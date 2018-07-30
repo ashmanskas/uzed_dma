@@ -86,6 +86,9 @@ apply_bd_automation -rule xilinx.com:bd_rule:axi4 \
                  intc_ip "/ps7_0_axi_periph" Clk_xbar "Auto" \
                  Clk_master "Auto" Clk_slave "Auto" }  \
     [get_bd_intf_pins wja_bus_lite_0/s00_axi]
+startgroup
+make_bd_pins_external [get_bd_pins wja_bus_lite_0/reg0]
+endgroup
 regenerate_bd_layout
 validate_bd_design
 save_bd_design
@@ -95,6 +98,7 @@ add_files -norecurse \
     $dir/project/project.srcs/sources_1/bd/bd/hdl/bd_wrapper.v
 add_files -norecurse \
     $dir/src/hdl/top.v
+add_files -fileset constrs_1 -norecurse $dir/src/hdl/top.xdc
 update_compile_order -fileset sources_1
 launch_runs impl_1 -to_step write_bitstream -jobs 4
 wait_on_run impl_1
