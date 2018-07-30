@@ -1,8 +1,8 @@
 set dir [pwd]
-create_project proj $dir/proj -part xc7z020clg400-1
+create_project project $dir/project -part xc7z020clg400-1 -force
 set_property board_part em.avnet.com:microzed_7020:part0:1.1 [current_project]
 ipx::infer_core -vendor user.org -library user -taxonomy /UserIP $dir/src/ip/wja_axis
-ipx::edit_ip_in_project -upgrade true -name edit_ip_project -directory $dir/proj/proj.tmp $dir/src/ip/wja_axis/component.xml
+ipx::edit_ip_in_project -upgrade true -name edit_ip_project -directory $dir/project/proj.tmp $dir/src/ip/wja_axis/component.xml
 ipx::current_core $dir/src/ip/wja_axis/component.xml
 update_compile_order -fileset sources_1
 set_property core_revision 2 [ipx::current_core]
@@ -14,7 +14,7 @@ close_project -delete
 # set_property  ip_repo_paths  $dir/src/ip/wja_axis [current_project]
 update_ip_catalog
 ipx::infer_core -vendor user.org -library user -taxonomy /UserIP $dir/src/ip/wja_bus_lite
-ipx::edit_ip_in_project -upgrade true -name edit_ip_project -directory $dir/proj/proj.tmp $dir/src/ip/wja_bus_lite/component.xml
+ipx::edit_ip_in_project -upgrade true -name edit_ip_project -directory $dir/project/proj.tmp $dir/src/ip/wja_bus_lite/component.xml
 ipx::current_core $dir/src/ip/wja_bus_lite/component.xml
 update_compile_order -fileset sources_1
 set_property core_revision 2 [ipx::current_core]
