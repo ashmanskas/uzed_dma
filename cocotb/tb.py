@@ -189,6 +189,9 @@ class Tester(object):
         expecteq("", dut.bl.slv_reg2, 0x54321888)
         yield self.bus_wr(2, 0x54321999)
         expecteq("", dut.bl.slv_reg2, 0x54321999)
+        yield self.bus_wr(0, 0xbabeface)
+        expecteq("", dut.bl.slv_reg0, 0xbabeface)
+        expecteq("", dut.reg0, 0xbabeface)
         yield self.bus_rd(3)
         expecteq("", dut.last_rdata, 0xdeadbeef)
         yield self.bus_rd(4)
@@ -423,7 +426,7 @@ class Tester(object):
 from testwrapper import CocotbTest
 @CocotbTest("T02", skip=False)
 def test02_hello(dut):
-    "Test '???' module: hello world"
+    "hello world: test AXI-Lite I/O to wja_bus_lite module"
     expecteq_reset()
     dut.cocotb_testnum = 2
     o = Tester(dut)
