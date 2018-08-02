@@ -66,6 +66,7 @@ module wja_bus_lite
      // information
      input  wire        s00_axi_rready
      );
+    wire clk = s00_axi_aclk;
     // AXI4LITE signals
     reg  [4:0] axi_awaddr;  // ADDR_WIDTH
     reg        axi_awready;
@@ -83,7 +84,7 @@ module wja_bus_lite
     reg [31:0] slv_reg2;
     wire       slv_reg_wren;
     reg [31:0] reg_data_out;
-    integer    b;  // byte_index
+    integer    b = 0;  // byte_index
     // I/O Connections assignments
     assign s00_axi_awready = axi_awready;
     assign s00_axi_wready  = axi_wready;
@@ -95,7 +96,7 @@ module wja_bus_lite
     assign s00_axi_rvalid  = axi_rvalid;
     // assert awready for one clk cycle when both awvalid and wvalid
     // are asserted
-    always @(posedge s00_axi_aclk) begin
+    always @(posedge clk) begin
         if (!s00_axi_aresetn) begin
             axi_awready <= 0;
         end else begin    
@@ -112,7 +113,7 @@ module wja_bus_lite
     end       
     // Implement axi_awaddr latching This process is used to latch the
     // address when both s00_axi_awvalid and s00_axi_wvalid are valid.
-    always @(posedge s00_axi_aclk) begin
+    always @(posedge clk) begin
         if (!s00_axi_aresetn) begin
             axi_awaddr <= 0;
         end else begin    
@@ -124,7 +125,7 @@ module wja_bus_lite
     end       
     // assert wready for one clk cycle when both awvalid and wvalid
     // are asserted
-    always @(posedge s00_axi_aclk) begin
+    always @(posedge clk) begin
         if (!s00_axi_aresetn) begin
             axi_wready <= 0;
         end else begin    
@@ -150,7 +151,7 @@ module wja_bus_lite
     // address and write data.
     assign slv_reg_wren = 
       axi_wready && s00_axi_wvalid && axi_awready && s00_axi_awvalid;
-    always @(posedge s00_axi_aclk) begin
+    always @(posedge clk) begin
         if (!s00_axi_aresetn) begin
             slv_reg0 <= 0;
             slv_reg1 <= 0;
@@ -189,7 +190,7 @@ module wja_bus_lite
     // axi_wready, s00_axi_wvalid, axi_wready and s00_axi_wvalid are
     // asserted.  This marks the acceptance of address and indicates
     // the status of write transaction.
-    always @(posedge s00_axi_aclk) begin
+    always @(posedge clk) begin
         if (!s00_axi_aresetn) begin
             axi_bvalid  <= 0;
             axi_bresp   <= 0;
@@ -216,7 +217,7 @@ module wja_bus_lite
     // asserted.  The read address is also latched when
     // s00_axi_arvalid is asserted. axi_araddr is reset to zero on
     // reset assertion.
-    always @(posedge s00_axi_aclk) begin
+    always @(posedge clk) begin
         if (!s00_axi_aresetn) begin
             axi_arready <= 0;
             axi_araddr  <= 0;
@@ -239,7 +240,7 @@ module wja_bus_lite
     // axi_rresp indicates the status of read transaction.axi_rvalid
     // is deasserted on reset (active low). axi_rresp and axi_rdata
     // are cleared to zero on reset (active low).
-    always @(posedge s00_axi_aclk) begin
+    always @(posedge clk) begin
         if (!s00_axi_aresetn) begin
             axi_rvalid <= 0;
             axi_rresp  <= 0;
@@ -269,7 +270,7 @@ module wja_bus_lite
     end
     // Output register or memory read data
     wire slv_reg_rden = axi_arready && s00_axi_arvalid && !axi_rvalid;
-    always @(posedge s00_axi_aclk) begin
+    always @(posedge clk) begin
         if (!s00_axi_aresetn) begin
             axi_rdata <= 0;
         end else begin    
