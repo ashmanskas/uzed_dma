@@ -79,9 +79,7 @@ module wja_bus_lite
     reg  [1:0] axi_rresp;
     reg        axi_rvalid;
     // Example-specific design signals
-    reg [31:0] slv_reg0;
-    reg [31:0] slv_reg1;
-    reg [31:0] slv_reg2;
+    reg [31:0] slv_reg [0:255];
     wire       slv_reg_wren;
     reg [31:0] reg_data_out;
     integer    b = 0;  // byte_index
@@ -153,18 +151,12 @@ module wja_bus_lite
       axi_wready && s00_axi_wvalid && axi_awready && s00_axi_awvalid;
     always @(posedge clk) begin
         if (!s00_axi_aresetn) begin
-            slv_reg0 <= 0;
-            slv_reg1 <= 0;
-            slv_reg2 <= 0;
+            for (b=0; b<8; b=b+1) slv_reg[b] <= 0;
         end else begin
             if (slv_reg_wren) begin
                 // For each slave register, assert respective byte
                 // enables as per write strobes
-                case (axi_awaddr[4:2])
-                    3'h0: slv_reg0 <= s00_axi_wdata;
-                    3'h1: slv_reg1 <= s00_axi_wdata;
-                    3'h2: slv_reg2 <= s00_axi_wdata;
-                endcase
+                slv_reg[axi_awaddr[4:2]] <= s00_axi_wdata;
             end
         end
     end
@@ -244,9 +236,9 @@ module wja_bus_lite
     end
     always @(*) begin
         case (axi_araddr[4:2])  // address decode for reading registers
-            3'h0    : reg_data_out <= slv_reg0;
-            3'h1    : reg_data_out <= slv_reg1;
-            3'h2    : reg_data_out <= slv_reg2;
+            3'h0    : reg_data_out <= slv_reg[0];
+            3'h1    : reg_data_out <= slv_reg[1];
+            3'h2    : reg_data_out <= slv_reg[2];
             3'h3    : reg_data_out <= 32'hdeadbeef; // R3;
             3'h4    : reg_data_out <= 32'h12345678; // R4;
             3'h5    : reg_data_out <= 32'h87654321; // R5;
@@ -269,7 +261,7 @@ module wja_bus_lite
             end
         end
     end
-    assign reg0 = slv_reg0;
+    assign reg0 = slv_reg[0];
     // assign reg1 = slv_reg1;
     // assign reg2 = slv_reg2;
 endmodule

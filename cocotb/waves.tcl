@@ -33,8 +33,6 @@ waveform add -signals {tb.bl.s00_axi_wdata[31:0]}
 waveform add -signals {tb.bl.s00_axi_wready}
 waveform add -signals {tb.bl.s00_axi_wstrb[3:0]}
 waveform add -signals {tb.bl.s00_axi_wvalid}
-waveform add -signals {tb.bl.slv_reg0[31:0]}
-waveform add -signals {tb.bl.slv_reg1[31:0]}
-waveform add -signals {tb.bl.slv_reg2[31:0]}
+waveform add -signals {tb.bl.slv_reg}
 waveform add -signals {tb.bl.slv_reg_rden}
 waveform add -signals {tb.bl.slv_reg_wren}
