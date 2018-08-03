@@ -99,7 +99,7 @@ module wja_bus_lite
     always @(posedge clk) begin
         if (!s00_axi_aresetn) begin
             axi_awready <= 0;
-        end else begin    
+        end else begin
             if (!axi_awready && s00_axi_awvalid && s00_axi_wvalid) begin
                 // slave is ready to accept write address when there
                 // is a valid write address and write data on the
@@ -109,26 +109,26 @@ module wja_bus_lite
             end else begin
                 axi_awready <= 0;
             end
-        end 
-    end       
+        end
+    end
     // Implement axi_awaddr latching This process is used to latch the
     // address when both s00_axi_awvalid and s00_axi_wvalid are valid.
     always @(posedge clk) begin
         if (!s00_axi_aresetn) begin
             axi_awaddr <= 0;
-        end else begin    
+        end else begin
             if (~axi_awready && s00_axi_awvalid && s00_axi_wvalid) begin
-                // Write Address latching 
+                // Write Address latching
                 axi_awaddr <= s00_axi_awaddr;
             end
-        end 
-    end       
+        end
+    end
     // assert wready for one clk cycle when both awvalid and wvalid
     // are asserted
     always @(posedge clk) begin
         if (!s00_axi_aresetn) begin
             axi_wready <= 0;
-        end else begin    
+        end else begin
             if (!axi_wready && s00_axi_wvalid && s00_axi_awvalid) begin
                 // slave is ready to accept write data when there is a
                 // valid write address and write data on the write
@@ -138,8 +138,8 @@ module wja_bus_lite
             end else begin
                 axi_wready <= 0;
             end
-        end 
-    end       
+        end
+    end
     // Implement memory mapped register select and write logic
     // generation The write data is accepted and written to memory
     // mapped registers when axi_awready, s00_axi_wvalid, axi_wready
@@ -149,7 +149,7 @@ module wja_bus_lite
     // Slave register write enable is asserted when valid address and
     // data are available and the slave is ready to accept the write
     // address and write data.
-    assign slv_reg_wren = 
+    assign slv_reg_wren =
       axi_wready && s00_axi_wvalid && axi_awready && s00_axi_awvalid;
     always @(posedge clk) begin
         if (!s00_axi_aresetn) begin
@@ -161,30 +161,13 @@ module wja_bus_lite
                 // For each slave register, assert respective byte
                 // enables as per write strobes
                 case (axi_awaddr[4:2])
-                    3'h0:
-                      for (b = 0; b<=3; b = b+1)
-                        if (s00_axi_wstrb[b]) begin
-                            slv_reg0[(b*8)+:8] <= s00_axi_wdata[(b*8)+:8];
-                        end  
-                    3'h1:
-                      for (b = 0; b<=3; b = b+1)
-                        if (s00_axi_wstrb[b]) begin
-                            slv_reg1[(b*8)+:8] <= s00_axi_wdata[(b*8)+:8];
-                        end  
-                    3'h2:
-                      for (b = 0; b<=3; b = b+1)
-                        if (s00_axi_wstrb[b]) begin
-                            slv_reg2[(b*8)+:8] <= s00_axi_wdata[(b*8)+:8];
-                        end  
-                    default : begin
-                        slv_reg0 <= slv_reg0;
-                        slv_reg1 <= slv_reg1;
-                        slv_reg2 <= slv_reg2;
-                    end
+                    3'h0: slv_reg0 <= s00_axi_wdata;
+                    3'h1: slv_reg1 <= s00_axi_wdata;
+                    3'h2: slv_reg2 <= s00_axi_wdata;
                 endcase
             end
         end
-    end    
+    end
     // Implement write response logic generation The write response
     // and response valid signals are asserted by the slave when
     // axi_wready, s00_axi_wvalid, axi_wready and s00_axi_wvalid are
@@ -194,23 +177,23 @@ module wja_bus_lite
         if (!s00_axi_aresetn) begin
             axi_bvalid  <= 0;
             axi_bresp   <= 0;
-        end else begin    
-            if (axi_awready && s00_axi_awvalid && 
+        end else begin
+            if (axi_awready && s00_axi_awvalid &&
                 !axi_bvalid && axi_wready && s00_axi_wvalid) begin
                 // indicates a valid write response is available
                 axi_bvalid <= 1;
-                axi_bresp  <= 0; // 'OKAY' response 
+                axi_bresp  <= 0; // 'OKAY' response
                 // work error responses in future
             end else begin
                 if (s00_axi_bready && axi_bvalid) begin
                     // check if bready is asserted while bvalid is
                     // high (there is a possibility that bready is
                     // always asserted high)
-                    axi_bvalid <= 0; 
-                end  
+                    axi_bvalid <= 0;
+                end
             end
         end
-    end   
+    end
     // Implement axi_arready generation axi_arready is asserted for
     // one s00_axi_aclk clock cycle when s00_axi_arvalid is
     // asserted. axi_awready is de-asserted when reset (active low) is
@@ -221,7 +204,7 @@ module wja_bus_lite
         if (!s00_axi_aresetn) begin
             axi_arready <= 0;
             axi_araddr  <= 0;
-        end else begin    
+        end else begin
             if (~axi_arready && s00_axi_arvalid) begin
                 // slave has acceped the valid read address
                 axi_arready <= 1;
@@ -230,8 +213,8 @@ module wja_bus_lite
             end else begin
                 axi_arready <= 0;
             end
-        end 
-    end       
+        end
+    end
     // Implement axi_arvalid generation axi_rvalid is asserted for one
     // s00_axi_aclk clock cycle when both s00_axi_arvalid and
     // axi_arready are asserted. The slave registers data are
@@ -244,7 +227,7 @@ module wja_bus_lite
         if (!s00_axi_aresetn) begin
             axi_rvalid <= 0;
             axi_rresp  <= 0;
-        end else begin    
+        end else begin
             if (axi_arready && s00_axi_arvalid && ~axi_rvalid) begin
                 // Valid read data is available at the read data bus
                 axi_rvalid <= 1;
@@ -252,19 +235,23 @@ module wja_bus_lite
             end else if (axi_rvalid && s00_axi_rready) begin
                 // Read data is accepted by the master
                 axi_rvalid <= 0;
-            end                
+            end
         end
-    end    
+    end
+    reg [31:0] ticks = 0;
+    always @ (posedge clk) begin
+        ticks <= ticks + 1;
+    end
     always @(*) begin
         case (axi_araddr[4:2])  // address decode for reading registers
-            3'h0   : reg_data_out <= slv_reg0;
-            3'h1   : reg_data_out <= slv_reg1;
-            3'h2   : reg_data_out <= slv_reg2;
-            3'h3   : reg_data_out <= 32'hdeadbeef; // R3;
-            3'h4   : reg_data_out <= 32'h12345678; // R4;
-            3'h5   : reg_data_out <= 32'h87654321; // R5;
-            3'h6   : reg_data_out <= 32'h07301751; // R6;
-            3'h7   : reg_data_out <= 0; // R7;
+            3'h0    : reg_data_out <= slv_reg0;
+            3'h1    : reg_data_out <= slv_reg1;
+            3'h2    : reg_data_out <= slv_reg2;
+            3'h3    : reg_data_out <= 32'hdeadbeef; // R3;
+            3'h4    : reg_data_out <= 32'h12345678; // R4;
+            3'h5    : reg_data_out <= 32'h87654321; // R5;
+            3'h6    : reg_data_out <= 32'h07301751; // R6;
+            3'h7    : reg_data_out <= ticks; // R7;
             default : reg_data_out <= 0;
         endcase
     end
@@ -273,15 +260,15 @@ module wja_bus_lite
     always @(posedge clk) begin
         if (!s00_axi_aresetn) begin
             axi_rdata <= 0;
-        end else begin    
+        end else begin
             // When there is a valid read address (arvalid) with
             // acceptance of read address by the slave (arready),
             // output the read data
             if (slv_reg_rden) begin
                 axi_rdata <= reg_data_out;  // register read data
-            end   
+            end
         end
-    end    
+    end
     assign reg0 = slv_reg0;
     // assign reg1 = slv_reg1;
     // assign reg2 = slv_reg2;
