@@ -87,7 +87,14 @@ apply_bd_automation -rule xilinx.com:bd_rule:axi4 \
                  Clk_master "Auto" Clk_slave "Auto" }  \
     [get_bd_intf_pins wja_bus_lite_0/s00_axi]
 startgroup
-make_bd_pins_external [get_bd_pins wja_bus_lite_0/reg0]
+make_bd_pins_external [get_bd_pins wja_bus_lite_0/oreg0]
+make_bd_pins_external [get_bd_pins wja_bus_lite_0/oreg1]
+make_bd_pins_external [get_bd_pins wja_bus_lite_0/oreg2]
+make_bd_pins_external [get_bd_pins wja_bus_lite_0/ireg3]
+make_bd_pins_external [get_bd_pins wja_bus_lite_0/ireg4]
+make_bd_pins_external [get_bd_pins wja_bus_lite_0/ireg5]
+make_bd_pins_external [get_bd_pins wja_bus_lite_0/ireg6]
+make_bd_pins_external [get_bd_pins wja_bus_lite_0/ireg7]
 endgroup
 regenerate_bd_layout
 validate_bd_design
