@@ -18,9 +18,10 @@ module tb;
     // Data storage by cocotb test bench
     reg  [31:0] last_rdata = 0;
     // wja_bus_lite inputs/outputs (other than clock)
-    wire [31:0] reg0;
+    wire [31:0] reg0, reg1, reg2, reg3, reg4, reg5, reg6, reg7;
+    assign {reg3,reg4,reg5,reg6,reg7} = 0;
     reg         aresetn = 0;
-    reg   [4:0] awaddr  = 0;
+    reg   [7:0] awaddr  = 0;
     reg   [2:0] awprot  = 0;
     reg         awvalid = 0;
     wire        awready;
@@ -31,7 +32,7 @@ module tb;
     wire  [1:0] bresp;
     wire        bvalid;
     reg         bready  = 0;
-    reg   [4:0] araddr  = 0;
+    reg   [7:0] araddr  = 0;
     reg   [2:0] arprot  = 0;
     reg         arvalid = 0;
     wire        arready;
@@ -41,7 +42,8 @@ module tb;
     reg         rready  = 0;
     // Instantiate wja_bus_lite
     wja_bus_lite bl
-      (.reg0(reg0),
+      (.oreg0(reg0), .oreg1(reg1), .oreg2(reg2), .ireg3(reg3),
+       .ireg4(reg4), .ireg5(reg5), .ireg6(reg6), .ireg7(reg7),
        .s00_axi_aclk(clk), .s00_axi_aresetn(aresetn),
        .s00_axi_awaddr(awaddr), .s00_axi_awvalid(awvalid),
        .s00_axi_awready(awready), .s00_axi_wdata(wdata),
