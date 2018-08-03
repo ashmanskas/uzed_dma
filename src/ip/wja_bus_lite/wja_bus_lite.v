@@ -17,7 +17,7 @@ module wja_bus_lite
      // active-low global reset signal
      input  wire        s00_axi_aresetn,
      // write address: issued by master, acceped by slave
-     input  wire  [4:0] s00_axi_awaddr,  // ADDR_WIDTH
+     input  wire  [9:0] s00_axi_awaddr,  // ADDR_WIDTH
      // write channel protection type: indicates the privilege and
      // security level of the transaction, and whether the transaction
      // is a data access or an instruction access
@@ -45,7 +45,7 @@ module wja_bus_lite
      // response ready: master can accept a write response
      input  wire        s00_axi_bready,
      // read address: issued by master, acceped by slave
-     input  wire  [4:0] s00_axi_araddr,  // ADDR_WIDTH
+     input  wire  [9:0] s00_axi_araddr,  // ADDR_WIDTH
      // protection type: indicates the privilege and security level of
      // the transaction, and whether the transaction is a data access
      // or an instruction access
@@ -68,12 +68,12 @@ module wja_bus_lite
      );
     wire clk = s00_axi_aclk;
     // AXI4LITE signals
-    reg  [4:0] axi_awaddr;  // ADDR_WIDTH
+    reg  [9:0] axi_awaddr;  // ADDR_WIDTH
     reg        axi_awready;
     reg        axi_wready;
     reg  [1:0] axi_bresp;
     reg        axi_bvalid;
-    reg  [4:0] axi_araddr;  // ADDR_WIDTH
+    reg  [9:0] axi_araddr;  // ADDR_WIDTH
     reg        axi_arready;
     reg [31:0] axi_rdata;
     reg  [1:0] axi_rresp;
@@ -151,12 +151,12 @@ module wja_bus_lite
       axi_wready && s00_axi_wvalid && axi_awready && s00_axi_awvalid;
     always @(posedge clk) begin
         if (!s00_axi_aresetn) begin
-            for (b=0; b<8; b=b+1) slv_reg[b] <= 0;
+            for (b=0; b<256; b=b+1) slv_reg[b] <= 0;
         end else begin
             if (slv_reg_wren) begin
                 // For each slave register, assert respective byte
                 // enables as per write strobes
-                slv_reg[axi_awaddr[4:2]] <= s00_axi_wdata;
+                slv_reg[axi_awaddr[9:2]] <= s00_axi_wdata;
             end
         end
     end
@@ -235,16 +235,13 @@ module wja_bus_lite
         ticks <= ticks + 1;
     end
     always @(*) begin
-        case (axi_araddr[4:2])  // address decode for reading registers
-            3'h0    : reg_data_out <= slv_reg[0];
-            3'h1    : reg_data_out <= slv_reg[1];
-            3'h2    : reg_data_out <= slv_reg[2];
+        case (axi_araddr[9:2])  // address decode for reading registers
             3'h3    : reg_data_out <= 32'hdeadbeef; // R3;
             3'h4    : reg_data_out <= 32'h12345678; // R4;
             3'h5    : reg_data_out <= 32'h87654321; // R5;
             3'h6    : reg_data_out <= 32'h07301751; // R6;
             3'h7    : reg_data_out <= ticks; // R7;
-            default : reg_data_out <= 0;
+            default : reg_data_out <= slv_reg[axi_araddr[9:2]];
         endcase
     end
     // Output register or memory read data
