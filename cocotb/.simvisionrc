@@ -1,0 +1,8 @@
+puts "hello world: This is ~/.simvisionrc"
+if {[file exists simvision.tcl]} {
+  echo "running simvision.tcl"
+  source simvision.tcl
+} else {
+  echo "simvision.tcl not found"
+}
+ 
