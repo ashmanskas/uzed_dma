@@ -26,7 +26,7 @@ module tb;
     wire        awready;
     reg  [31:0] wdata   = 0;
     reg   [3:0] wstrb   = 4'hf;
-    reg         wvalid;
+    reg         wvalid  = 0;
     wire        wready;
     wire  [1:0] bresp;
     wire        bvalid;
