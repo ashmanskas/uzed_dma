@@ -95,24 +95,7 @@ class Tester(object):
             yield RisingEdge(self.dut.clk)
 
     @cocotb.coroutine
-    def bus_wq(self, a, d):
-        "Quick (cheating) version of bus write"
-        yield self.wait_clk(1)
-        self.dut.rs.busfsm.ffwrdata = d
-        self.dut.rs.busfsm.ffaddr = a
-        self.dut.rs.busfsm.ffwr = 1
-        yield self.wait_clk(2)
-        
-    @cocotb.coroutine
-    def bus_wq_chk(self, a, d, net, verbose=True):
-        "Do buswr a := d, then check that net==d"
-        print "wq: %04x := %04x  %s"%(a, d, net._path)
-        yield self.bus_wq(a, d)
-        fmt = "%s: "%(net._path) + "%x != %x"
-        expecteq(fmt, net, d)
-        
-    @cocotb.coroutine
-    def bus_wr(self, a, d):
+    def axi_wr(self, a, d):
         dut = self.dut
         dut.awvalid = 0
         dut.wvalid = 0
@@ -138,6 +121,61 @@ class Tester(object):
 
     @cocotb.coroutine
     def bus_rd(self, a, rv=None):
+        # Mimic 'busrd' code in busio.c
+        dut = self.dut
+        yield self.axi_rd(7)
+        expecteq("", dut.last_rdata, 0xfab40001)
+        # all PS strobes should already be zero
+        yield self.axi_wr(2, 0)
+        # PL strobe should already be zero
+        yield self.axi_rd(3)
+        expecteq("r[3] & 1: %x != %x", Int(dut.last_rdata) & 1, 0)
+        # set address register
+        yield self.axi_wr(1, a & 0xffff)
+        # raise PS read strobe
+        yield self.axi_wr(2, 1)
+        # Wait for FSM to catch up
+        yield self.wait_clk(4)
+        # PL strobe should be 1 now
+        yield self.axi_rd(3)
+        expecteq("r[3] & 1: %x != %x", Int(dut.last_rdata) & 1, 1)
+        # read data register
+        yield self.axi_rd(4)
+        data = Int(dut.last_rdata) & 0xffff
+        # lower PS read strobe
+        yield self.axi_wr(2, 0)
+        if rv is not None:
+            rv.data = data
+        dut.last_rdata = data
+
+    @cocotb.coroutine
+    def bus_wr(self, a, d):
+        # Mimic 'buswr' code in busio.c
+        dut = self.dut
+        yield self.axi_rd(7)
+        expecteq("", dut.last_rdata, 0xfab40001)
+        # all PS strobes should already be zero
+        yield self.axi_wr(2, 0)
+        # PL strobe should already be zero
+        yield self.axi_rd(3)
+        expecteq("r[3] & 1: %x != %x", Int(dut.last_rdata) & 1, 0)
+        # set address+data register
+        yield self.axi_wr(1, ((d & 0xffff) << 16) | (a & 0xffff))
+        # raise PS write strobe
+        yield self.axi_wr(2, 2)
+        # Wait for FSM to catch up
+        yield self.wait_clk(4)
+        # PL strobe should be 1 now
+        yield self.axi_rd(3)
+        expecteq("r[3] & 1: %x != %x", Int(dut.last_rdata) & 1, 1)
+        # read data register
+        yield self.axi_rd(4)
+        data = Int(dut.last_rdata) & 0xffff
+        # lower PS write strobe
+        yield self.axi_wr(2, 0)
+
+    @cocotb.coroutine
+    def axi_rd(self, a, rv=None):
         dut = self.dut
         dut.rready = 0
         dut.arvalid = 0
@@ -185,21 +223,33 @@ class Tester(object):
         dut = self.dut
         dut._log.info("run_hello: begin")
         yield self.do_reset()
-        yield self.bus_wr(2, 0x54321888)
-        expecteq("", dut.bl.slv_reg[2], 0x54321888)
-        yield self.bus_wr(2, 0x54321999)
-        expecteq("", dut.bl.slv_reg[2], 0x54321999)
-        yield self.bus_wr(0, 0xbabeface)
+        yield self.axi_wr(0x22, 0x54321888)
+        expecteq("", dut.bl.slv_reg[0x22], 0x54321888)
+        yield self.axi_wr(0x22, 0x54321999)
+        expecteq("", dut.bl.slv_reg[0x22], 0x54321999)
+        yield self.axi_wr(0, 0xbabeface)
         expecteq("", dut.bl.slv_reg[0], 0xbabeface)
         expecteq("", dut.reg0, 0xbabeface)
-        yield self.bus_rd(0x13)
+        yield self.axi_rd(0x13)
         expecteq("", dut.last_rdata, 0xdeadbeef)
-        yield self.bus_rd(0x14)
+        yield self.axi_rd(0x14)
         expecteq("", dut.last_rdata, 0x12345678)
-        yield self.bus_rd(0x15)
+        yield self.axi_rd(0x15)
         expecteq("", dut.last_rdata, 0x87654321)
-        yield self.bus_rd(2)
+        yield self.axi_rd(0x22)
         expecteq("", dut.last_rdata, 0x54321999)
+        yield self.bus_rd(0x0001)
+        expecteq("", dut.last_rdata, 0xbeef)
+        yield self.bus_rd(0x0002)
+        expecteq("", dut.last_rdata, 0xdead)
+        yield self.bus_wr(0x0003, 0x1234)
+        expecteq("", dut.mv.q0003, 0x1234)
+        yield self.bus_wr(0x0004, 0x5678)
+        expecteq("", dut.mv.q0004, 0x5678)
+        yield self.bus_rd(0x0003)
+        expecteq("", dut.last_rdata, 0x1234)
+        yield self.bus_rd(0x0004)
+        expecteq("", dut.last_rdata, 0x5678)
         dut._log.info("run_hello: done")
 
     @cocotb.coroutine

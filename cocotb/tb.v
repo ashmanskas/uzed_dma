@@ -19,7 +19,6 @@ module tb;
     reg  [31:0] last_rdata = 0;
     // wja_bus_lite inputs/outputs (other than clock)
     wire [31:0] reg0, reg1, reg2, reg3, reg4, reg5, reg6, reg7;
-    assign {reg3,reg4,reg5,reg6,reg7} = 0;
     reg         aresetn = 0;
     reg   [7:0] awaddr  = 0;
     reg   [2:0] awprot  = 0;
@@ -53,7 +52,13 @@ module tb;
        .s00_axi_araddr(araddr), .s00_axi_arprot(arprot),
        .s00_axi_arvalid(arvalid), .s00_axi_arready(arready),
        .s00_axi_rdata(rdata), .s00_axi_rresp(rresp),
-       .s00_axi_rvalid(rvalid), .s00_axi_rready(rready)); 
+       .s00_axi_rvalid(rvalid), .s00_axi_rready(rready));
+    // Additional inputs/outputs needed for myverilog
+    wire [7:0] led;
+    // Instantiate myverilog
+    myverilog mv
+      (.clk(clk), .r0(reg0), .r1(reg1), .r2(reg2), .r3(reg3), .r4(reg4),
+       .r5(reg5), .r6(reg6), .r7(reg7), .led(led));
 endmodule
 
 `default_nettype wire
