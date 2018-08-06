@@ -41,6 +41,73 @@ module myverilog
     reg [15:0] ticks = 0;
     always @ (posedge clk) ticks <= ticks + 1;
     zror #(16'h0005) r0005(ibus, obus, ticks);
+
+    // ======================================================================
+    // mimic serialized Microzed-to-Spartan6 I/O here, so that I can use
+    // this code as a platform for making a much faster protocol
+ 
+    wire from_spartan6 = 0;
+    wire to_spartan6;
+    wire clk100 = clk;
+
+    reg a7_bus_wdat = 0, a7_bus_wdat1 = 0, a7_bus_rdat = 0;
+    reg a7_bus_wdat1a = 0, a7_bus_wdat1b = 0;
+    wire a7_bus_wdat9;
+    wire a7_bus_rdat0 = from_spartan6;
+    always @ (posedge clk100) a7_bus_rdat <= from_spartan6;
+
+    // see comments for "busfsm" in busio.v
+    reg [15:0] bytesseen = 0, bytessent = 0;
+    reg [11:0] bytereg = 0;
+    reg [39:0] wordreg = 0, lastword = 0;
+    reg        execcmd = 0, newrequest = 0;
+    reg [49:0] dbgshift = 0;
+    always @ (posedge clk100) begin
+        dbgshift <= {dbgshift, a7_bus_rdat};
+        if (bytereg[11] & !bytereg[1:0]) begin
+            bytesseen <= bytesseen+1;
+            bytereg <= 12'b0;
+            wordreg <= {wordreg[31:0], bytereg[9:2]};
+            execcmd <= bytereg[10];
+        end else begin
+            bytereg <= {bytereg[10:0], a7_bus_rdat};
+            if (execcmd) begin
+                lastword <= wordreg;
+                wordreg <= 40'b0;
+            end else if (newrequest) begin
+                lastword <= 40'b0;
+            end
+            execcmd <= 1'b0;
+        end
+    end
+    // registers returning status+data from last A7 bus operation
+    wire [7:0]  laststatus = lastword[7:0];
+    zror #('h0080,8) r0080(ibus, obus, lastword);
+    wire [15:0] lastread   = lastword[23:8];
+    zror #('h0081) r0081(ibus, obus, lastread);
+    zror #('h0083) r0083(ibus, obus, bytesseen);
+    zror #('h0084) r0084(ibus, obus, bytessent);
+    // register/FSM to shift a (9-bit) "byte" out to Artix7
+    wire [11:0] a7byteout;
+    zreg #('h0082,12) r0082(ibus, obus, a7byteout);
+    wire r0082_wr = (baddr=='h0082 && bwr && bstrobe);
+    reg [3:0] a7byteout_go = 0;
+    reg [11:0] a7shiftout = 0;
+    always @ (posedge clk100) begin
+        a7byteout_go <= {a7byteout_go,r0082_wr};
+        if (a7byteout_go==4'b1000) begin
+          a7shiftout <= a7byteout | 'h0200;  // assert start bit
+          bytessent <= bytessent + 1;
+          newrequest <= 1;
+        end else begin
+          a7shiftout <= {a7shiftout,1'b0};
+          newrequest <= 0;
+        // the OR is a hack to let my testbench overwrite a7_bus_wdat
+        end
+        a7_bus_wdat1 <= a7shiftout[11];
+    end
+    assign to_spartan6 = a7_bus_wdat1;
+
 endmodule  // myverilog
 
 
