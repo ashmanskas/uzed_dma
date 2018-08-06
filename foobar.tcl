@@ -87,6 +87,7 @@ apply_bd_automation -rule xilinx.com:bd_rule:axi4 \
                  Clk_master "Auto" Clk_slave "Auto" }  \
     [get_bd_intf_pins wja_bus_lite_0/s00_axi]
 startgroup
+make_bd_pins_external [get_bd_pins wja_bus_lite_0/oclk]
 make_bd_pins_external [get_bd_pins wja_bus_lite_0/oreg0]
 make_bd_pins_external [get_bd_pins wja_bus_lite_0/oreg1]
 make_bd_pins_external [get_bd_pins wja_bus_lite_0/oreg2]
@@ -96,6 +97,9 @@ make_bd_pins_external [get_bd_pins wja_bus_lite_0/ireg5]
 make_bd_pins_external [get_bd_pins wja_bus_lite_0/ireg6]
 make_bd_pins_external [get_bd_pins wja_bus_lite_0/ireg7]
 endgroup
+# create_bd_port -dir O -type clk fclk_clk0
+# connect_bd_net [get_bd_ports fclk_clk0] \
+#     [get_bd_pins processing_system7_0/FCLK_CLK0]
 regenerate_bd_layout
 validate_bd_design
 save_bd_design
@@ -103,9 +107,9 @@ make_wrapper -top \
     -files [get_files $dir/project/project.srcs/sources_1/bd/bd/bd.bd]
 add_files -norecurse \
     $dir/project/project.srcs/sources_1/bd/bd/hdl/bd_wrapper.v
-add_files -norecurse \
-    $dir/src/hdl/top.v
+add_files -norecurse $dir/src/hdl/top.v
 add_files -fileset constrs_1 -norecurse $dir/src/hdl/top.xdc
+add_files -norecurse $dir/src/hdl/myverilog.v
 update_compile_order -fileset sources_1
 launch_runs impl_1 -to_step write_bitstream -jobs 4
 wait_on_run impl_1

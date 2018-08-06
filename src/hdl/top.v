@@ -25,8 +25,8 @@ module top
     inout  wire        FIXED_IO_ps_srstb,
     output wire [7:0]  led
     );
+    wire clk0;
     wire [31:0] reg0, reg1, reg2, reg3, reg4, reg5, reg6, reg7;
-    assign {reg3, reg4, reg5, reg6, reg7} = 0;
     bd_wrapper bd_wrapper_inst
       (.DDR_addr(DDR_addr), .DDR_ba(DDR_ba), .DDR_cas_n(DDR_cas_n),
        .DDR_ck_n(DDR_ck_n), .DDR_ck_p(DDR_ck_p), .DDR_cke(DDR_cke),
@@ -38,9 +38,12 @@ module top
        .FIXED_IO_mio(FIXED_IO_mio), .FIXED_IO_ps_clk(FIXED_IO_ps_clk),
        .FIXED_IO_ps_porb(FIXED_IO_ps_porb),
        .FIXED_IO_ps_srstb(FIXED_IO_ps_srstb),
+       .oclk(clk0),
        .oreg0(reg0), .oreg1(reg1), .oreg2(reg2),
        .ireg3(reg3), .ireg4(reg4), .ireg5(reg5), .ireg6(reg6), .ireg7(reg7));
-    assign led = reg0[7:0];
+    myverilog mv
+      (.clk(clk0), .r0(reg0), .r1(reg1), .r2(reg2), .r3(reg3), .r4(reg4),
+       .r5(reg5), .r6(reg6), .r7(reg7), .led(led));
 endmodule
 
 `default_nettype wire

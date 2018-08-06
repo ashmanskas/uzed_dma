@@ -3,6 +3,7 @@
 
 module wja_bus_lite
     (
+     output wire        oclk,
      output wire [31:0] oreg0,
      output wire [31:0] oreg1,
      output wire [31:0] oreg2,
@@ -67,6 +68,7 @@ module wja_bus_lite
      input  wire        s00_axi_rready
      );
     wire clk = s00_axi_aclk;
+    assign oclk = clk;
     // AXI4LITE signals
     reg  [7:0] axi_awaddr;  // ADDR_WIDTH
     reg        axi_awready;

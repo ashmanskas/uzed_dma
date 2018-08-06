@@ -30,7 +30,7 @@ module myverilog
        .baddr(baddr), .bwr(bwr), .bstrobe(bstrobe),
        .bwrdata(bwrdata), .brddata(brddata));
     assign r5 = {brddata,baddr};
-    zror #(16'h0000) r0000(ibus, obus, 16'h1129);
+    zror #(16'h0000) r0000(ibus, obus, 16'h0806);
     zror #(16'h0001) r0001(ibus, obus, 16'hbeef);
     zror #(16'h0002) r0002(ibus, obus, 16'hdead);
     wire [15:0] q0003;
@@ -38,6 +38,9 @@ module myverilog
     wire [15:0] q0004;
     zreg #(16'h0004) r0004(ibus, obus, q0004);
     assign led = q0004;
+    reg [15:0] ticks = 0;
+    always @ (posedge clk) ticks <= ticks + 1;
+    zror #(16'h0005) r0005(ibus, obus, ticks);
 endmodule  // myverilog
 
 
