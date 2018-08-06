@@ -347,5 +347,44 @@ module zror #( parameter MYADDR=0, W=16 )
 endmodule // zror
 
 
+
+module fake_spartan6
+  (
+   input  wire clk,
+   input  wire busin,
+   output wire busout
+   );
+
+    // Instantiate state machine to accept "bus" commands
+    // via ad-hoc serial link from Microzed.
+    wire [15:0] baddr, bwrdata, brddata;
+    wire        bwr;
+    wire [15:0] rdcount, wrcount, bytecount;
+    busfsm busfsm (.clk(clk), .serialin(busin), .serialout(busout),
+                   .wr(bwr), .addr(baddr), .wrdata(bwrdata),
+                   .rddata(brddata), .rdcount(rdcount), .wrcount(wrcount),
+                   .bytecount(bytecount), .debug(), .debug1());
+
+    localparam IBUSW = 1+1+16+16;
+    wire [IBUSW-1:0] ibus = {clk, bwr, baddr, bwrdata};
+    wand [15:0]      obus;
+    assign brddata = obus;
+
+    bror #('h0210) r0210(ibus, obus, rdcount);
+    bror #('h0211) r0211(ibus, obus, wrcount);
+    bror #('h0212) r0212(ibus, obus, bytecount);
+
+    bror #('h0000) r0000(ibus, obus, 16'h0000); // always reads zero
+    bror #('h0001) r0001(ibus, obus, 16'hbeef); // always reads funny message
+    wire [15:0] q0003;
+    breg #('h0003) r0003(ibus, obus, q0003);    // generic read/write register
+
+    reg [15:0] ticks = 0;
+    always @ (posedge clk) ticks <= ticks + 1;
+    bror #('h0005) r0005(ibus, obus, ticks);
+
+endmodule  // fake_spartan6
+
+
 `default_nettype wire
 
