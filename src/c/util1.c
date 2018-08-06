@@ -24,6 +24,7 @@ extern void clkdiv(void);
 
 // forward declarations
 void foobar(void);
+void foobar1(void);
 
 int main(int argc, char **argv)
 {
@@ -94,6 +95,8 @@ int main(int argc, char **argv)
       clkdiv();
     } else if (!strcmp(cmd, "foobar")) {
       foobar();
+    } else if (!strcmp(cmd, "foobar1")) {
+      foobar1();
     } else {
       fprintf(stderr, "command '%s' unknown\n", cmd);
       rc = 1;
@@ -105,12 +108,13 @@ int main(int argc, char **argv)
 
 
 typedef unsigned long u32;
+typedef unsigned short u16;
 
 #define NEL(x) (sizeof((x))/sizeof((x)[0]))
 
 void foobar(void)
 {
-  u32 addr = 0x43c0001c;
+  u32 addr = 0x43c0005c;
   u32 base = addr & 0xfffff000;
   u32 offs = addr & 0x00000fff;
   u32 mlen =        0x00001000;
@@ -134,4 +138,26 @@ void foobar(void)
     double avg = (last-first)/((double) (nel));
     printf("average interval: %.1f = %.1f ns\n", avg, avg*10.0);
   }
+  assert(sizeof(u32)==4);
+}
+
+void foobar1(void)
+{
+  u16 retvals[16384];
+  int i = 0, nel = NEL(retvals);
+  int diff = 0;
+  for (i = 0; i<nel; i++)
+    retvals[i] = busrd(0x0005);
+  double totdiff = 0.0;
+  for (i = 0; i<nel; i++) {
+    // if (i%128!=0 && i+1!=NEL(retvals)) continue;
+    printf("%d %x\n", i, retvals[i]);
+    if (i>0) {
+      diff = (retvals[i]-retvals[i-1]) & 0xffff;
+      totdiff += diff;
+    }
+  }
+  double avg = totdiff/((double) (nel-1));
+  printf("average interval: %.1f = %.1f ns\n", avg, avg*10.0);
+  assert(sizeof(u16)==2);
 }
