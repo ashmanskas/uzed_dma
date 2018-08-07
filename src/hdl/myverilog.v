@@ -28,18 +28,13 @@ module myverilog
     wire [33:0] ibus = {clk, bwr, baddr, bwrdata};
     wire [15:0] obus;
     assign brddata = obus;
-    bus_zynq_gpio bus_zynq_gpio
-      (.clk(clk), .clk100(clk), .r0(r0), .r1(r1), .r2(r2),
-       .r3(r3), .r4(r4), .r5(), .r6(r6), .r7(r7),
-       .baddr(baddr), .bwr(bwr), .bstrobe(bstrobe),
-       .bwrdata(bwrdata), .brddata(brddata));
     assign r5 = {brddata,baddr};
 
     assign bbrddata = brddata;
-    // assign bwr = bbwr;
-    // assign bstrobe = bbstrobe;
-    // assign baddr = bbaddr;
-    // assign bwrdata = bbwrdata;
+    assign bwr = bbwr;
+    assign bstrobe = bbstrobe;
+    assign baddr = bbaddr;
+    assign bwrdata = bbwrdata;
 
     zror #(16'h0000) r0000(ibus, obus, 16'h0806);
     zror #(16'h0001) r0001(ibus, obus, 16'hbeef);
