@@ -138,7 +138,7 @@ class Tester(object):
         yield self.bus_wr(0x0082, a    & 0xff)
         yield self.wait_clk(10)
         yield self.bus_wr(0x0082, 0x0102)
-        yield self.wait_clk(20)
+        yield self.wait_clk(60)
         yield self.bus_rd(0x0083)  # bytesseen1
         expecteq("", dut.last_rdata, (self.bytesseen + 3) & 0xffff)
         self.bytesseen = Int(dut.last_rdata)
@@ -181,35 +181,6 @@ class Tester(object):
         expecteq("", dut.last_rdata, 0x0001)
         
     @cocotb.coroutine
-    def bus_rd_old(self, a, rv=None):
-        # Mimic 'busrd' code in busio.c
-        dut = self.dut
-        yield self.axi_rd(7)
-        expecteq("", dut.last_rdata, 0xfab40001)
-        # all PS strobes should already be zero
-        yield self.axi_wr(2, 0)
-        # PL strobe should already be zero
-        yield self.axi_rd(3)
-        expecteq("r[3] & 1: %x != %x", Int(dut.last_rdata) & 1, 0)
-        # set address register
-        yield self.axi_wr(1, a & 0xffff)
-        # raise PS read strobe
-        yield self.axi_wr(2, 1)
-        # Wait for FSM to catch up
-        yield self.wait_clk(4)
-        # PL strobe should be 1 now
-        yield self.axi_rd(3)
-        expecteq("r[3] & 1: %x != %x", Int(dut.last_rdata) & 1, 1)
-        # read data register
-        yield self.axi_rd(4)
-        data = Int(dut.last_rdata) & 0xffff
-        # lower PS read strobe
-        yield self.axi_wr(2, 0)
-        if rv is not None:
-            rv.data = data
-        dut.last_rdata = data
-
-    @cocotb.coroutine
     def bus_rd(self, a, rv=None):
         # Mimic 'busrd' code in busio.c
         dut = self.dut
@@ -234,32 +205,6 @@ class Tester(object):
         yield self.axi_wr(0x08,
                           (a & 0xffff)<<16 | (d & 0xffff))
         yield self.wait_clk()
-
-    @cocotb.coroutine
-    def bus_wr_old(self, a, d):
-        # Mimic 'buswr' code in busio.c
-        dut = self.dut
-        yield self.axi_rd(7)
-        expecteq("", dut.last_rdata, 0xfab40001)
-        # all PS strobes should already be zero
-        yield self.axi_wr(2, 0)
-        # PL strobe should already be zero
-        yield self.axi_rd(3)
-        expecteq("r[3] & 1: %x != %x", Int(dut.last_rdata) & 1, 0)
-        # set address+data register
-        yield self.axi_wr(1, ((d & 0xffff) << 16) | (a & 0xffff))
-        # raise PS write strobe
-        yield self.axi_wr(2, 2)
-        # Wait for FSM to catch up
-        yield self.wait_clk(4)
-        # PL strobe should be 1 now
-        yield self.axi_rd(3)
-        expecteq("r[3] & 1: %x != %x", Int(dut.last_rdata) & 1, 1)
-        # read data register
-        yield self.axi_rd(4)
-        data = Int(dut.last_rdata) & 0xffff
-        # lower PS write strobe
-        yield self.axi_wr(2, 0)
 
     @cocotb.coroutine
     def axi_rd(self, a, rv=None):
