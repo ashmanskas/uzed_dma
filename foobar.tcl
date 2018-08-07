@@ -88,6 +88,11 @@ apply_bd_automation -rule xilinx.com:bd_rule:axi4 \
     [get_bd_intf_pins wja_bus_lite_0/s00_axi]
 startgroup
 make_bd_pins_external [get_bd_pins wja_bus_lite_0/oclk]
+make_bd_pins_external [get_bd_pins wja_bus_lite_0/baddr]
+make_bd_pins_external [get_bd_pins wja_bus_lite_0/bwrdata]
+make_bd_pins_external [get_bd_pins wja_bus_lite_0/brddata]
+make_bd_pins_external [get_bd_pins wja_bus_lite_0/bwr]
+make_bd_pins_external [get_bd_pins wja_bus_lite_0/bstrobe]
 make_bd_pins_external [get_bd_pins wja_bus_lite_0/oreg0]
 make_bd_pins_external [get_bd_pins wja_bus_lite_0/oreg1]
 make_bd_pins_external [get_bd_pins wja_bus_lite_0/oreg2]

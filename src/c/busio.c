@@ -38,6 +38,9 @@ bus_init(void)
 		     memfd, base);
   assert(mapped_base != MAP_FAILED);
   bus_r = (size_t *) mapped_base;
+  size_t *r = bus_r;
+  assert(r!=0);
+  assert(r[0x13]==0xdeadbeef);
 }
 
 void
@@ -46,15 +49,8 @@ buswr(int addr, int data)
   if (!bus_r) bus_init();
   size_t *r = bus_r;
   assert(r!=0);
-  assert(r[7]==0xfab40001);
   // "bus" write operation
-  r[2] = 0;                        // all PS strobes should already be 0
-  assert((r[3] & 1)==0);           // PL strobe should already be 0
-  r[1] = ((data & 0xffff) << 16) | (addr & 0xffff);
-  r[2] = 2;                        // raise PS write strobe
-  assert(r[3] & 1);                // PL strobe should be 1 now
-  r[2] = 0;                        // lower PS write strobe
-  // printf("busio: wr %04x := %04x\n", r[5] & 0xffff, r[4] & 0xffff);
+  r[8] = (addr & 0xffff)<<16 | (data & 0xffff);
   return;
 }
 
@@ -64,16 +60,11 @@ busrd(int addr)
   if (!bus_r) bus_init();
   size_t *r = bus_r;
   assert(r!=0);
-  assert(r[7]==0xfab40001);
   // "bus" read operation
-  r[2] = 0;                        // all PS strobes should already be 0
-  assert((r[3] & 1)==0);           // PL strobe should already be 0
-  r[1] = addr & 0xffff;
-  r[2] = 1;                        // raise PS read strobe
-  assert(r[3] & 1);                // PL strobe should be 1 now
-  int data = r[4] & 0xffff;        // latch in data from read cycle
-  r[2] = 0;                        // lower PS read strobe
-  //printf("busio: rd %04x ==> %04x\n", r[5] & 0xffff, data);
+  r[9] = (addr & 0xffff) << 16;
+  int rv = r[9];
+  assert((rv>>16 & 0xffff)==addr);
+  int data = rv & 0xffff;
   return data;
 }
 
@@ -85,6 +76,8 @@ a7rd(int addr)
   buswr(0x0082, addr>>8 & 0xff);
   buswr(0x0082, addr    & 0xff);
   buswr(0x0082, 0x0102);
+  assert(busrd(2)==0xdead);  // artificial delay
+  assert(busrd(1)==0xbeef);  // artificial delay
   int bytesseen_expect = (bytesseen0+3) & 0xffff;
   int bytesseen1 = busrd(0x0083);
   int bytessent1 = busrd(0x0084);
@@ -111,6 +104,8 @@ a7wr(int addr, int data)
   buswr(0x0082, addr>>8 & 0xff);
   buswr(0x0082, addr    & 0xff);
   buswr(0x0082, 0x0101);
+  assert(busrd(2)==0xdead);  // artificial delay
+  assert(busrd(1)==0xbeef);  // artificial delay
   int bytesseen_expect = (bytesseen0+1) & 0xffff;
   int bytesseen1 = busrd(0x0083);
   int status = busrd(0x0080);
