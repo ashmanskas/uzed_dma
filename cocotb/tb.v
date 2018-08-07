@@ -39,10 +39,14 @@ module tb;
     wire  [1:0] rresp;
     wire        rvalid;
     reg         rready  = 0;
+    wire [15:0] baddr, bwrdata, brddata;
+    wire        bwr, bstrobe;
     // Instantiate wja_bus_lite
     wja_bus_lite bl
       (.oreg0(reg0), .oreg1(reg1), .oreg2(reg2), .ireg3(reg3),
        .ireg4(reg4), .ireg5(reg5), .ireg6(reg6), .ireg7(reg7),
+       .baddr(baddr), .bwrdata(bwrdata), .brddata(brddata),
+       .bwr(bwr), .bstrobe(bstrobe),
        .s00_axi_aclk(clk), .s00_axi_aresetn(aresetn),
        .s00_axi_awaddr(awaddr), .s00_axi_awvalid(awvalid),
        .s00_axi_awready(awready), .s00_axi_wdata(wdata),
@@ -57,8 +61,12 @@ module tb;
     wire [7:0] led;
     // Instantiate myverilog
     myverilog mv
-      (.clk(clk), .r0(reg0), .r1(reg1), .r2(reg2), .r3(reg3), .r4(reg4),
-       .r5(reg5), .r6(reg6), .r7(reg7), .led(led));
+      (.clk(clk), 
+       .r0(reg0), .r1(reg1), .r2(reg2), .r3(reg3), .r4(reg4),
+       .r5(reg5), .r6(reg6), .r7(reg7),
+       .bbaddr(baddr), .bbwrdata(bwrdata), .bbrddata(brddata),
+       .bbwr(bwr), .bbstrobe(bstrobe),
+       .led(led));
 endmodule
 
 `default_nettype wire

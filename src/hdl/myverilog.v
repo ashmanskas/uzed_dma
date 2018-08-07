@@ -14,6 +14,10 @@ module myverilog
    // for communication with PS (CPU) side
    input  wire [31:0] r0, r1, r2,
    output wire [31:0] r3, r4, r5, r6, r7,
+   // register file 'bus' driven directly by 'wja_bus_lite' module
+   input  wire [15:0] bbaddr, bbwrdata,
+   output wire [15:0] bbrddata,
+   input  wire        bbwr, bbstrobe,
    // ## I/O pins start here: ##
    output wire [7:0]  led
    );
@@ -30,6 +34,13 @@ module myverilog
        .baddr(baddr), .bwr(bwr), .bstrobe(bstrobe),
        .bwrdata(bwrdata), .brddata(brddata));
     assign r5 = {brddata,baddr};
+
+    assign bbrddata = brddata;
+    // assign bwr = bbwr;
+    // assign bstrobe = bbstrobe;
+    // assign baddr = bbaddr;
+    // assign bwrdata = bbwrdata;
+
     zror #(16'h0000) r0000(ibus, obus, 16'h0806);
     zror #(16'h0001) r0001(ibus, obus, 16'hbeef);
     zror #(16'h0002) r0002(ibus, obus, 16'hdead);
@@ -370,7 +381,7 @@ module fake_spartan6
 
     localparam IBUSW = 1+1+16+16;
     wire [IBUSW-1:0] ibus = {clk, bwr, baddr, bwrdata};
-    wand [15:0]      obus;
+    wire [15:0]      obus;
     assign brddata = obus;
 
     bror #('h0210) r0210(ibus, obus, rdcount);

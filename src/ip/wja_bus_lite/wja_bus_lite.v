@@ -1,9 +1,15 @@
 
 `timescale 1 ns / 1 ps
+`default_nettype none
 
 module wja_bus_lite
     (
      output wire        oclk,
+     output wire [15:0] baddr,
+     output wire [15:0] bwrdata,
+     input  wire [15:0] brddata,
+     output wire        bwr,
+     output wire        bstrobe,
      output wire [31:0] oreg0,
      output wire [31:0] oreg1,
      output wire [31:0] oreg2,
@@ -84,7 +90,6 @@ module wja_bus_lite
     reg [31:0] slv_reg [0:63];
     wire       slv_reg_wren;
     reg [31:0] reg_data_out;
-    integer    b = 0;  // byte_index
     // I/O Connections assignments
     assign s00_axi_awready = axi_awready;
     assign s00_axi_wready  = axi_wready;
@@ -94,6 +99,9 @@ module wja_bus_lite
     assign s00_axi_rdata   = axi_rdata;
     assign s00_axi_rresp   = axi_rresp;
     assign s00_axi_rvalid  = axi_rvalid;
+    integer    b = 0;  // byte_index
+    // for register-file 'bus'
+    reg [15:0] last_rdaddr=0, last_rddata=0;
     // assert awready for one clk cycle when both awvalid and wvalid
     // are asserted
     always @(posedge clk) begin
@@ -243,6 +251,9 @@ module wja_bus_lite
             'h05    : reg_data_out <= ireg5;
             'h06    : reg_data_out <= ireg6;
             'h07    : reg_data_out <= ireg7;
+            'h08    : reg_data_out <= 0;  // buswr{addr,data}
+            'h09    : reg_data_out <= {last_rdaddr,last_rddata};
+                                          // busrd{addr,data}
             'h13    : reg_data_out <= 32'hdeadbeef;
             'h14    : reg_data_out <= 32'h12345678;
             'h15    : reg_data_out <= 32'h87654321;
@@ -268,4 +279,63 @@ module wja_bus_lite
     assign oreg0 = slv_reg[0];
     assign oreg1 = slv_reg[1];
     assign oreg2 = slv_reg[2];
+    localparam IDLE=0, WRITE=1, READ=2, READ1=3;
+    reg [1:0] fsm=0;
+    reg [15:0] baddr_ff=0, bwrdata_ff=0;
+    reg bwr_ff=0, bstrobe_ff=0;
+    always @(posedge clk) begin
+        case (fsm)
+            IDLE: 
+              begin
+                  if (slv_reg_wren && axi_awaddr[7:2]=='h08) begin
+                      baddr_ff <= s00_axi_wdata[31:16];
+                      bwrdata_ff <= s00_axi_wdata[15:0];
+                      bwr_ff <= 1;
+                      bstrobe_ff <= 1;
+                      fsm <= WRITE;
+                  end else if (slv_reg_wren && axi_awaddr[7:2]=='h09) begin
+                      baddr_ff <= s00_axi_wdata[31:16];
+                      bwrdata_ff <= 0;
+                      bwr_ff <= 0;
+                      bstrobe_ff <= 0;
+                      fsm <= READ;
+                  end else begin
+                      baddr_ff <= 0;
+                      bwrdata_ff <= 0;
+                      bwr_ff <= 0;
+                      bstrobe_ff <= 0;
+                      fsm <= IDLE;
+                  end
+              end
+            WRITE:
+              begin
+                  // register-file 'bus' write cycle
+                  baddr_ff <= 0;
+                  bwrdata_ff <= 0;
+                  bwr_ff <= 0;
+                  bstrobe_ff <= 0;
+                  fsm <= IDLE;
+              end
+            READ:
+              begin
+                  // register-file 'bus' read cycle
+                  bstrobe_ff <= 1;
+                  fsm <= READ1;
+              end
+            READ1:
+              begin
+                  bstrobe_ff <= 0;
+                  baddr_ff <= 0;
+                  last_rdaddr <= baddr;
+                  last_rddata <= brddata;
+                  fsm <= IDLE;
+              end
+        endcase
+    end
+    assign baddr = baddr_ff;
+    assign bwrdata = bwrdata_ff;
+    assign bwr = bwr_ff;
+    assign bstrobe = bstrobe_ff;
 endmodule
+
+`default_nettype wire

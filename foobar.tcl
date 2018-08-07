@@ -110,6 +110,7 @@ add_files -norecurse \
 add_files -norecurse $dir/src/hdl/top.v
 add_files -fileset constrs_1 -norecurse $dir/src/hdl/top.xdc
 add_files -norecurse $dir/src/hdl/myverilog.v
+add_files -norecurse $dir/src/hdl/busio.v
 update_compile_order -fileset sources_1
 launch_runs impl_1 -to_step write_bitstream -jobs 4
 wait_on_run impl_1
