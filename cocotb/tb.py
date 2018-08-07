@@ -134,9 +134,11 @@ class Tester(object):
         yield self.bus_rd(0x0083)  # bytesseen0
         expecteq("", dut.last_rdata, self.bytesseen)
         yield self.bus_wr(0x0082, a>>8 & 0xff)
+        yield self.wait_clk(10)
         yield self.bus_wr(0x0082, a    & 0xff)
+        yield self.wait_clk(10)
         yield self.bus_wr(0x0082, 0x0102)
-        yield self.wait_clk(30)
+        yield self.wait_clk(20)
         yield self.bus_rd(0x0083)  # bytesseen1
         expecteq("", dut.last_rdata, (self.bytesseen + 3) & 0xffff)
         self.bytesseen = Int(dut.last_rdata)
@@ -160,11 +162,15 @@ class Tester(object):
         yield self.bus_rd(0x0083)  # bytesseen0
         expecteq("", dut.last_rdata, self.bytesseen)
         yield self.bus_wr(0x0082, d>>8 & 0xff)
+        yield self.wait_clk(10)
         yield self.bus_wr(0x0082, d    & 0xff)
+        yield self.wait_clk(10)
         yield self.bus_wr(0x0082, a>>8 & 0xff)
+        yield self.wait_clk(10)
         yield self.bus_wr(0x0082, a    & 0xff)
+        yield self.wait_clk(10)
         yield self.bus_wr(0x0082, 0x0101)
-        yield self.wait_clk(3)
+        yield self.wait_clk(40)
         yield self.bus_rd(0x0083)  # bytesseen1
         expecteq("", dut.last_rdata, (self.bytesseen + 1) & 0xffff)
         self.bytesseen = Int(dut.last_rdata)
@@ -175,7 +181,7 @@ class Tester(object):
         expecteq("", dut.last_rdata, 0x0001)
         
     @cocotb.coroutine
-    def bus_rd(self, a, rv=None):
+    def bus_rd_old(self, a, rv=None):
         # Mimic 'busrd' code in busio.c
         dut = self.dut
         yield self.axi_rd(7)
@@ -204,7 +210,33 @@ class Tester(object):
         dut.last_rdata = data
 
     @cocotb.coroutine
+    def bus_rd(self, a, rv=None):
+        # Mimic 'busrd' code in busio.c
+        dut = self.dut
+        yield self.axi_rd(0x13)
+        expecteq("", dut.last_rdata, 0xdeadbeef)
+        yield self.axi_wr(0x09, (a & 0xffff)<<16)
+        yield self.wait_clk(5)
+        yield self.axi_rd(0x09)
+        expecteq("", dut.bl.last_rdaddr, a)
+        data = Int(dut.last_rdata) & 0xffff
+        if rv is not None:
+            rv.data = data
+        dut.last_rdata = data
+        yield self.wait_clk()
+
+    @cocotb.coroutine
     def bus_wr(self, a, d):
+        # Mimic 'buswr' code in busio.c
+        dut = self.dut
+        yield self.axi_rd(0x13)
+        expecteq("", dut.last_rdata, 0xdeadbeef)
+        yield self.axi_wr(0x08,
+                          (a & 0xffff)<<16 | (d & 0xffff))
+        yield self.wait_clk()
+
+    @cocotb.coroutine
+    def bus_wr_old(self, a, d):
         # Mimic 'buswr' code in busio.c
         dut = self.dut
         yield self.axi_rd(7)
@@ -293,12 +325,12 @@ class Tester(object):
         expecteq("", dut.last_rdata, 0x87654321)
         yield self.axi_rd(0x22)
         expecteq("", dut.last_rdata, 0x54321999)
+        yield self.bus_wr(0x0003, 0x1234)
+        expecteq("", dut.mv.q0003, 0x1234)
         yield self.bus_rd(0x0001)
         expecteq("", dut.last_rdata, 0xbeef)
         yield self.bus_rd(0x0002)
         expecteq("", dut.last_rdata, 0xdead)
-        yield self.bus_wr(0x0003, 0x1234)
-        expecteq("", dut.mv.q0003, 0x1234)
         yield self.bus_wr(0x0004, 0x5678)
         expecteq("", dut.mv.q0004, 0x5678)
         yield self.bus_rd(0x0003)
