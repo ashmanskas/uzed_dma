@@ -6,6 +6,7 @@ from cocotb.utils import get_sim_time
 
 import random
 import numpy as np
+import traceback
 
 from wjautil import MyBits
 
@@ -48,6 +49,9 @@ def expecteq(fmt, got, exp):
         expecteq_errmsg_list.append(errmsg)
         if not expecteq_nonfatal:
             raise TestFailure(fmt%(got, exp))
+        else:
+            stack = traceback.extract_stack()
+            print stack[-2]
     else:
         expecteq_nok += 1
 
@@ -83,6 +87,8 @@ class Tester(object):
 
     def __init__(self, dut):
         self.dut = dut
+        self.bytessent = 0
+        self.bytesseen = 0
 
     @cocotb.coroutine
     def wait_clk(self, n=1):
@@ -119,6 +125,55 @@ class Tester(object):
         dut.bready = 0
         yield self.wait_clk()
 
+    @cocotb.coroutine
+    def s6_rd(self, a, rv=None):
+        # Mimic 'a7_rd' code in busio.c
+        dut = self.dut
+        yield self.bus_rd(0x0084)  # bytessent0
+        expecteq("", dut.last_rdata, self.bytessent)
+        yield self.bus_rd(0x0083)  # bytesseen0
+        expecteq("", dut.last_rdata, self.bytesseen)
+        yield self.bus_wr(0x0082, a>>8 & 0xff)
+        yield self.bus_wr(0x0082, a    & 0xff)
+        yield self.bus_wr(0x0082, 0x0102)
+        yield self.wait_clk(30)
+        yield self.bus_rd(0x0083)  # bytesseen1
+        expecteq("", dut.last_rdata, (self.bytesseen + 3) & 0xffff)
+        self.bytesseen = Int(dut.last_rdata)
+        yield self.bus_rd(0x0084)  # bytessent1
+        expecteq("", dut.last_rdata, (self.bytessent + 3) & 0xffff)
+        self.bytessent = Int(dut.last_rdata)
+        yield self.bus_rd(0x0080)  # status
+        expecteq("", dut.last_rdata, 0x0002)
+        yield self.bus_rd(0x0081)  # data
+        data = Int(dut.last_rdata) & 0xffff
+        if rv is not None:
+            rv.data = data
+        dut.last_rdata = data
+        
+    @cocotb.coroutine
+    def s6_wr(self, a, d):
+        # Mimic 'a7_wr' code in busio.c
+        dut = self.dut
+        yield self.bus_rd(0x0084)  # bytessent0
+        expecteq("", dut.last_rdata, self.bytessent)
+        yield self.bus_rd(0x0083)  # bytesseen0
+        expecteq("", dut.last_rdata, self.bytesseen)
+        yield self.bus_wr(0x0082, d>>8 & 0xff)
+        yield self.bus_wr(0x0082, d    & 0xff)
+        yield self.bus_wr(0x0082, a>>8 & 0xff)
+        yield self.bus_wr(0x0082, a    & 0xff)
+        yield self.bus_wr(0x0082, 0x0101)
+        yield self.wait_clk(3)
+        yield self.bus_rd(0x0083)  # bytesseen1
+        expecteq("", dut.last_rdata, (self.bytesseen + 1) & 0xffff)
+        self.bytesseen = Int(dut.last_rdata)
+        yield self.bus_rd(0x0084)  # bytessent1
+        expecteq("", dut.last_rdata, (self.bytessent + 5) & 0xffff)
+        self.bytessent = Int(dut.last_rdata)
+        yield self.bus_rd(0x0080)  # status
+        expecteq("", dut.last_rdata, 0x0001)
+        
     @cocotb.coroutine
     def bus_rd(self, a, rv=None):
         # Mimic 'busrd' code in busio.c
@@ -250,6 +305,15 @@ class Tester(object):
         expecteq("", dut.last_rdata, 0x1234)
         yield self.bus_rd(0x0004)
         expecteq("", dut.last_rdata, 0x5678)
+        yield self.s6_rd(0x0002)
+        expecteq("", dut.last_rdata, 0xdead)
+        yield self.s6_wr(0x0003, 0x1234)
+        yield self.s6_rd(0x0003)
+        expecteq("", dut.last_rdata, 0x1234)
+        yield self.s6_rd(0x0001)
+        expecteq("", dut.last_rdata, 0xbeef)
+        yield self.s6_rd(0x0003)
+        expecteq("", dut.last_rdata, 0x1234)
         dut._log.info("run_hello: done")
 
     @cocotb.coroutine

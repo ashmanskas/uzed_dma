@@ -46,8 +46,11 @@ module myverilog
     // mimic serialized Microzed-to-Spartan6 I/O here, so that I can use
     // this code as a platform for making a much faster protocol
  
-    wire from_spartan6 = 0;
+    wire from_spartan6;
     wire to_spartan6;
+    fake_spartan6 fs6
+      (.clk(clk), .busin(to_spartan6), .busout(from_spartan6));
+
     wire clk100 = clk;
 
     reg a7_bus_wdat = 0, a7_bus_wdat1 = 0, a7_bus_rdat = 0;
@@ -376,6 +379,7 @@ module fake_spartan6
 
     bror #('h0000) r0000(ibus, obus, 16'h0000); // always reads zero
     bror #('h0001) r0001(ibus, obus, 16'hbeef); // always reads funny message
+    bror #('h0002) r0002(ibus, obus, 16'hdead); // always reads funny message
     wire [15:0] q0003;
     breg #('h0003) r0003(ibus, obus, q0003);    // generic read/write register
 
