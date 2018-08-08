@@ -88,23 +88,13 @@ apply_bd_automation -rule xilinx.com:bd_rule:axi4 \
     [get_bd_intf_pins wja_bus_lite_0/s00_axi]
 startgroup
 make_bd_pins_external [get_bd_pins wja_bus_lite_0/oclk]
+make_bd_pins_external [get_bd_pins wja_bus_lite_0/plclk]
 make_bd_pins_external [get_bd_pins wja_bus_lite_0/baddr]
 make_bd_pins_external [get_bd_pins wja_bus_lite_0/bwrdata]
 make_bd_pins_external [get_bd_pins wja_bus_lite_0/brddata]
 make_bd_pins_external [get_bd_pins wja_bus_lite_0/bwr]
 make_bd_pins_external [get_bd_pins wja_bus_lite_0/bstrobe]
-make_bd_pins_external [get_bd_pins wja_bus_lite_0/oreg0]
-make_bd_pins_external [get_bd_pins wja_bus_lite_0/oreg1]
-make_bd_pins_external [get_bd_pins wja_bus_lite_0/oreg2]
-make_bd_pins_external [get_bd_pins wja_bus_lite_0/ireg3]
-make_bd_pins_external [get_bd_pins wja_bus_lite_0/ireg4]
-make_bd_pins_external [get_bd_pins wja_bus_lite_0/ireg5]
-make_bd_pins_external [get_bd_pins wja_bus_lite_0/ireg6]
-make_bd_pins_external [get_bd_pins wja_bus_lite_0/ireg7]
 endgroup
-# create_bd_port -dir O -type clk fclk_clk0
-# connect_bd_net [get_bd_ports fclk_clk0] \
-#     [get_bd_pins processing_system7_0/FCLK_CLK0]
 regenerate_bd_layout
 validate_bd_design
 save_bd_design
