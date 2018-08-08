@@ -3,7 +3,7 @@
 `default_nettype none
 
 module tb;
-    // Set up 100 MHz clock
+    // Set up 100 MHz clock: this is the 'fclk' provided by the PS
     reg clk = 0;
     initial begin
         while (1) begin
@@ -13,12 +13,21 @@ module tb;
             #5;
         end
     end
-    // I don't remember what I use this for
+    // This clock, also nominally 100 MHz, is used internally by the PL
+    reg plclk = 0;
+    initial begin
+        while (1) begin
+            plclk = 0;
+            #6;
+            plclk = 1;
+            #5;
+        end
+    end
+    // Lets me see from SimVision GUI where a teste begins and ends
     integer cocotb_testnum = 0;
     // Data storage by cocotb test bench
     reg  [31:0] last_rdata = 0;
     // wja_bus_lite inputs/outputs (other than clock)
-    wire [31:0] reg0, reg1, reg2, reg3, reg4, reg5, reg6, reg7;
     reg         aresetn = 0;
     reg   [7:0] awaddr  = 0;
     reg   [2:0] awprot  = 0;
@@ -43,10 +52,8 @@ module tb;
     wire        bwr, bstrobe;
     // Instantiate wja_bus_lite
     wja_bus_lite bl
-      (.oreg0(reg0), .oreg1(reg1), .oreg2(reg2), .ireg3(reg3),
-       .ireg4(reg4), .ireg5(reg5), .ireg6(reg6), .ireg7(reg7),
-       .baddr(baddr), .bwrdata(bwrdata), .brddata(brddata),
-       .bwr(bwr), .bstrobe(bstrobe),
+      (.plclk(plclk), .baddr(baddr), .bwrdata(bwrdata), 
+       .brddata(brddata), .bwr(bwr), .bstrobe(bstrobe),
        .s00_axi_aclk(clk), .s00_axi_aresetn(aresetn),
        .s00_axi_awaddr(awaddr), .s00_axi_awvalid(awvalid),
        .s00_axi_awready(awready), .s00_axi_wdata(wdata),
@@ -61,11 +68,9 @@ module tb;
     wire [7:0] led;
     // Instantiate myverilog
     myverilog mv
-      (.clk(clk), 
-       .r0(reg0), .r1(reg1), .r2(reg2), .r3(reg3), .r4(reg4),
-       .r5(reg5), .r6(reg6), .r7(reg7),
-       .bbaddr(baddr), .bbwrdata(bwrdata), .bbrddata(brddata),
-       .bbwr(bwr), .bbstrobe(bstrobe),
+      (.clk(plclk), 
+       .baddr(baddr), .bwrdata(bwrdata), .brddata(brddata),
+       .bwr(bwr), .bstrobe(bstrobe),
        .led(led));
 endmodule
 

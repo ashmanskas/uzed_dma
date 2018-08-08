@@ -4,20 +4,12 @@
 
 module wja_bus_lite
     (
-     output wire        oclk,
+     input  wire        plclk,
      output wire [15:0] baddr,
      output wire [15:0] bwrdata,
      input  wire [15:0] brddata,
      output wire        bwr,
      output wire        bstrobe,
-     output wire [31:0] oreg0,
-     output wire [31:0] oreg1,
-     output wire [31:0] oreg2,
-     input  wire [31:0] ireg3,
-     input  wire [31:0] ireg4,
-     input  wire [31:0] ireg5,
-     input  wire [31:0] ireg6,
-     input  wire [31:0] ireg7,
      // Ports of Axi Slave Bus Interface S00_AXI
      // global clock signal
      input  wire        s00_axi_aclk,
@@ -74,7 +66,6 @@ module wja_bus_lite
      input  wire        s00_axi_rready
      );
     wire clk = s00_axi_aclk;
-    assign oclk = clk;
     // AXI4LITE signals
     reg  [7:0] axi_awaddr;  // ADDR_WIDTH
     reg        axi_awready;
@@ -246,11 +237,6 @@ module wja_bus_lite
     end
     always @(*) begin
         case (axi_araddr[7:2])  // address decode for reading registers
-            'h03    : reg_data_out <= ireg3;
-            'h04    : reg_data_out <= ireg4;
-            'h05    : reg_data_out <= ireg5;
-            'h06    : reg_data_out <= ireg6;
-            'h07    : reg_data_out <= ireg7;
             'h08    : reg_data_out <= 0;  // buswr{addr,data}
             'h09    : reg_data_out <= {last_rdaddr,last_rddata};
                                           // busrd{addr,data}
@@ -276,9 +262,27 @@ module wja_bus_lite
             end
         end
     end
-    assign oreg0 = slv_reg[0];
-    assign oreg1 = slv_reg[1];
-    assign oreg2 = slv_reg[2];
+    // Drive the register file 'bus' that resides in the Microzed PL
+    reg [31:0] latch_89_wdata=0;
+    always @ (posedge clk) begin
+        // Upon a write to address 08 or 09, use AXI clock 'clk' to
+        // latch the contents of 's00_axi_wdata' so that it can (a few
+        // clock cycles from now) be used by an FSM driven by 'plclk'
+        if (slv_reg_wren &&
+            (axi_awaddr[7:2]=='h08 || axi_awaddr[7:2]=='h09)) 
+        begin
+            latch_89_wdata <= s00_axi_wdata;
+        end
+    end
+    // The following synchronous logic is driven by 'plclk'
+    wire w08_plclk_sync;  // synchronize write strobe to 'plclk'
+    wjabl_pulse_synchronizer ps08
+      (.clka(clk), .ain(slv_reg_wren && axi_awaddr[7:2]=='h08),
+       .clkb(plclk), .bout(w08_plclk_sync));
+    wire w09_plclk_sync;
+    wjabl_pulse_synchronizer ps09
+      (.clka(clk), .ain(slv_reg_wren && axi_awaddr[7:2]=='h09),
+       .clkb(plclk), .bout(w09_plclk_sync));
     localparam IDLE=0, WRITE=1, READ=2, READ1=3;
     reg [1:0] fsm=0;
     reg [15:0] baddr_ff=0, bwrdata_ff=0;
@@ -287,14 +291,14 @@ module wja_bus_lite
         case (fsm)
             IDLE: 
               begin
-                  if (slv_reg_wren && axi_awaddr[7:2]=='h08) begin
-                      baddr_ff <= s00_axi_wdata[31:16];
-                      bwrdata_ff <= s00_axi_wdata[15:0];
+                  if (w08_plclk_sync) begin
+                      baddr_ff <= latch_89_wdata[31:16];
+                      bwrdata_ff <= latch_89_wdata[15:0];
                       bwr_ff <= 1;
                       bstrobe_ff <= 1;
                       fsm <= WRITE;
-                  end else if (slv_reg_wren && axi_awaddr[7:2]=='h09) begin
-                      baddr_ff <= s00_axi_wdata[31:16];
+                  end else if (w09_plclk_sync) begin
+                      baddr_ff <= latch_89_wdata[31:16];
                       bwrdata_ff <= 0;
                       bwr_ff <= 0;
                       bstrobe_ff <= 0;
@@ -337,5 +341,99 @@ module wja_bus_lite
     assign bwr = bwr_ff;
     assign bstrobe = bstrobe_ff;
 endmodule
+
+
+module wjabl_pulse_synchronizer
+  (input  wire clka,
+   input  wire ain,
+   input  wire clkb,
+   output wire bout
+   );
+    localparam IDLE=1, HIGH=2, DONE=4;
+    reg [2:0] afsm=0;         // fsm A state
+    reg [2:0] afsm_sync0b=0;  // intermediate synchronizer
+    reg [2:0] afsm_syncb=0;   // fsm A state, synchonized to clock B
+    reg [1:0] bfsm=0;         // fsm B state
+    reg [1:0] bfsm_sync0a=0;  // intermediate synchronizer
+    reg [1:0] bfsm_synca=0;   // fsm B state, synchonized to clock A
+    wire atimeout;            // resets fsm A if timer expires
+    // This synchronous logic is synchronous to clock A
+    always @ (posedge clka) begin
+        // Synchronize B fsm state into clock domain A
+        bfsm_sync0a <= bfsm;
+        bfsm_synca  <= bfsm_sync0a;
+    end
+    always @ (posedge clka) begin
+        case (afsm)
+            IDLE: 
+              begin
+                  if (ain) afsm <= HIGH;
+              end
+            HIGH:
+              begin
+                  if (bfsm_synca==HIGH) begin
+                      afsm <= DONE;
+                  end else if (atimeout) begin
+                      afsm <= IDLE;
+                  end
+              end
+            DONE:
+              begin
+                  if (bfsm_synca==IDLE && !ain) begin
+                      afsm <= IDLE;
+                  end else if (atimeout) begin
+                      afsm <= IDLE;
+                  end
+              end
+            default:
+              begin
+                  afsm <= IDLE;
+              end
+        endcase
+    end
+    // Implement timeout mechanism for fsm A
+    reg [7:0] atimer=0;
+    always @ (posedge clka) begin
+        if (afsm==IDLE) begin
+            atimer <= 0;
+        end else if (~atimer) begin
+            // Stop incrementing timer once it reaches all-ones state
+            atimer <= atimer + 1;
+        end
+    end
+    assign atimeout = !(~atimer);  // all ones: timeout condition
+    // This synchronous logic is synchronous to clock B
+    reg bpulse=0;  // This will become the output pulse
+    assign bout = bpulse;
+    always @ (posedge clkb) begin
+        // Synchronize A fsm state into clock domain B
+        afsm_sync0b <= afsm;
+        afsm_syncb  <= afsm_sync0b;
+    end
+    always @ (posedge clkb) begin
+        case (bfsm)
+            IDLE: 
+              begin
+                  bpulse <= 0;
+                  if (afsm_syncb==HIGH) bfsm <= HIGH;
+              end
+            HIGH:
+              begin
+                  if (afsm_syncb==DONE || afsm_syncb==IDLE) begin
+                      bfsm <= IDLE;
+                      bpulse <= 1;
+                  end else begin
+                      bpulse <= 0;
+                  end
+              end
+            default:
+              begin
+                  bpulse <= 0;
+                  bfsm <= IDLE;
+              end
+        endcase
+    end
+endmodule
+
 
 `default_nettype wire
