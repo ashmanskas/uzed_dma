@@ -15,6 +15,7 @@ module myverilog
    input  wire [15:0] baddr, bwrdata,
    output wire [15:0] brddata,
    input  wire        bwr, bstrobe,
+   input  wire        do_a7_write,
    // ## I/O pins start here: ##
    output wire [7:0]  led
    );
@@ -76,22 +77,21 @@ module myverilog
     zror #('h0083) r0083(ibus, obus, bytesseen);
     zror #('h0084) r0084(ibus, obus, bytessent);
     // register/FSM to shift a (9-bit) "byte" out to Artix7
-    wire [11:0] a7byteout;
-    zreg #('h0082,12) r0082(ibus, obus, a7byteout);
-    wire r0082_wr = (baddr=='h0082 && bwr && bstrobe);
-    reg [3:0] a7byteout_go = 0;
-    reg [11:0] a7shiftout = 0;
+    reg [64:0] a7shiftout = 0;
     always @ (posedge clk100) begin
-        a7byteout_go <= {a7byteout_go,r0082_wr};
-        if (a7byteout_go==4'b1000) begin
-          a7shiftout <= a7byteout | 'h0200;  // assert start bit
-          bytessent <= bytessent + 1;
-          newrequest <= 1;
+        if (do_a7_write) begin
+            a7shiftout <= {3'b010, bwrdata[15:8], 2'b00,
+                           3'b010, bwrdata[7:0],  2'b00,
+                           3'b010, baddr[15:8],   2'b00,
+                           3'b010, baddr[7:0],    2'b00,
+                           3'b011, 8'h01,         2'b00};
+            bytessent <= bytessent + 5;
+            newrequest <= 1;
         end else begin
-          a7shiftout <= {a7shiftout,1'b0};
-          newrequest <= 0;
+            a7shiftout <= {a7shiftout,1'b0};
+            newrequest <= 0;
         end
-        a7_bus_wdat1 <= a7shiftout[11];
+        a7_bus_wdat1 <= a7shiftout[64];
     end
     assign to_spartan6 = a7_bus_wdat1;
 endmodule  // myverilog

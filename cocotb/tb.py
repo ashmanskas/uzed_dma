@@ -154,7 +154,7 @@ class Tester(object):
         dut.last_rdata = data
         
     @cocotb.coroutine
-    def s6_wr(self, a, d):
+    def s6_wr_old(self, a, d):
         # Mimic 'a7_wr' code in busio.c
         dut = self.dut
         yield self.bus_rd(0x0084)  # bytessent0
@@ -171,6 +171,26 @@ class Tester(object):
         yield self.wait_clk(10)
         yield self.bus_wr(0x0082, 0x0101)
         yield self.wait_clk(40)
+        yield self.bus_rd(0x0083)  # bytesseen1
+        expecteq("", dut.last_rdata, (self.bytesseen + 1) & 0xffff)
+        self.bytesseen = Int(dut.last_rdata)
+        yield self.bus_rd(0x0084)  # bytessent1
+        expecteq("", dut.last_rdata, (self.bytessent + 5) & 0xffff)
+        self.bytessent = Int(dut.last_rdata)
+        yield self.bus_rd(0x0080)  # status
+        expecteq("", dut.last_rdata, 0x0001)
+        
+    @cocotb.coroutine
+    def s6_wr(self, a, d):
+        # Mimic 'a7_wr' code in busio.c
+        dut = self.dut
+        yield self.bus_rd(0x0084)  # bytessent0
+        expecteq("", dut.last_rdata, self.bytessent)
+        yield self.bus_rd(0x0083)  # bytesseen0
+        expecteq("", dut.last_rdata, self.bytesseen)
+        yield self.axi_wr(0x0a,
+                          (a & 0xffff)<<16 | (d & 0xffff))
+        yield self.wait_clk(200)
         yield self.bus_rd(0x0083)  # bytesseen1
         expecteq("", dut.last_rdata, (self.bytesseen + 1) & 0xffff)
         self.bytesseen = Int(dut.last_rdata)
@@ -281,6 +301,8 @@ class Tester(object):
         expecteq("", dut.last_rdata, 0x1234)
         yield self.bus_rd(0x0004)
         expecteq("", dut.last_rdata, 0x5678)
+        yield self.s6_wr(0x0003, 0x1234)
+        expecteq("", dut.mv.fs6.q0003, 0x1234);
         yield self.s6_rd(0x0002)
         expecteq("", dut.last_rdata, 0xdead)
         yield self.s6_wr(0x0003, 0x1234)

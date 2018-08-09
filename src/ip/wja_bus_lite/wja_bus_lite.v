@@ -11,6 +11,7 @@ module wja_bus_lite
      input  wire [15:0] brddata,
      output wire        bwr,
      output wire        bstrobe,
+     output wire        do_a7_write,
      // Ports of Axi Slave Bus Interface S00_AXI
      // global clock signal
      input  wire        s00_axi_aclk,
@@ -242,6 +243,7 @@ module wja_bus_lite
             'h08    : reg_data_out <= 0;  // buswr{addr,data}
             'h09    : reg_data_out <= {last_rdaddr,last_rddata};
                                           // busrd{addr,data}
+            'h0a    : reg_data_out <= 0;  // s6wr(addr,data}
             'h13    : reg_data_out <= 32'hdeadbeef;
             'h14    : reg_data_out <= 32'h12345678;
             'h15    : reg_data_out <= 32'h87654321;
@@ -271,7 +273,8 @@ module wja_bus_lite
         // latch the contents of 's00_axi_wdata' so that it can (a few
         // clock cycles from now) be used by an FSM driven by 'plclk'
         if (slv_reg_wren &&
-            (axi_awaddr[7:2]=='h08 || axi_awaddr[7:2]=='h09)) 
+            (axi_awaddr[7:2]=='h08 || axi_awaddr[7:2]=='h09 ||
+             axi_awaddr[7:2]=='h0a)) 
         begin
             latch_89_wdata <= s00_axi_wdata;
         end
@@ -285,10 +288,14 @@ module wja_bus_lite
     wjabl_pulse_synchronizer ps09
       (.clka(clk), .ain(slv_reg_wren && axi_awaddr[7:2]=='h09),
        .clkb(plclk), .bout(w09_plclk_sync));
+    wire w0a_plclk_sync;
+    wjabl_pulse_synchronizer ps0a
+      (.clka(clk), .ain(slv_reg_wren && axi_awaddr[7:2]=='h0a),
+       .clkb(plclk), .bout(w0a_plclk_sync));
     localparam IDLE=0, WRITE=1, READ=2, READ1=3;
     reg [1:0] fsm=0;
     reg [15:0] baddr_ff=0, bwrdata_ff=0;
-    reg bwr_ff=0, bstrobe_ff=0;
+    reg bwr_ff=0, bstrobe_ff=0, do_a7_write_ff=0;
     always @(posedge clk) begin
         case (fsm)
             IDLE: 
@@ -298,18 +305,28 @@ module wja_bus_lite
                       bwrdata_ff <= latch_89_wdata[15:0];
                       bwr_ff <= 1;
                       bstrobe_ff <= 1;
+                      do_a7_write_ff <= 0;
                       fsm <= WRITE;
                   end else if (w09_plclk_sync) begin
                       baddr_ff <= latch_89_wdata[31:16];
                       bwrdata_ff <= 0;
                       bwr_ff <= 0;
                       bstrobe_ff <= 0;
+                      do_a7_write_ff <= 0;
                       fsm <= READ;
+                  end else if (w0a_plclk_sync) begin
+                      baddr_ff <= latch_89_wdata[31:16];
+                      bwrdata_ff <= latch_89_wdata[15:0];
+                      bwr_ff <= 0;
+                      bstrobe_ff <= 0;
+                      do_a7_write_ff <= 1;
+                      fsm <= WRITE;
                   end else begin
                       baddr_ff <= 0;
                       bwrdata_ff <= 0;
                       bwr_ff <= 0;
                       bstrobe_ff <= 0;
+                      do_a7_write_ff <= 0;
                       fsm <= IDLE;
                   end
               end
@@ -320,18 +337,21 @@ module wja_bus_lite
                   bwrdata_ff <= 0;
                   bwr_ff <= 0;
                   bstrobe_ff <= 0;
+                  do_a7_write_ff <= 0;
                   fsm <= IDLE;
               end
             READ:
               begin
                   // register-file 'bus' read cycle
                   bstrobe_ff <= 1;
+                  do_a7_write_ff <= 0;
                   fsm <= READ1;
               end
             READ1:
               begin
                   bstrobe_ff <= 0;
                   baddr_ff <= 0;
+                  do_a7_write_ff <= 0;
                   last_rdaddr <= baddr;
                   last_rddata <= brddata;
                   fsm <= IDLE;
@@ -342,6 +362,7 @@ module wja_bus_lite
     assign bwrdata = bwrdata_ff;
     assign bwr = bwr_ff;
     assign bstrobe = bstrobe_ff;
+    assign do_a7_write = do_a7_write_ff;
 endmodule
 
 

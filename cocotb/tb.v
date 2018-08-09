@@ -50,10 +50,12 @@ module tb;
     reg         rready  = 0;
     wire [15:0] baddr, bwrdata, brddata;
     wire        bwr, bstrobe;
+    wire        do_a7_write;
     // Instantiate wja_bus_lite
     wja_bus_lite bl
       (.plclk(plclk), .baddr(baddr), .bwrdata(bwrdata), 
        .brddata(brddata), .bwr(bwr), .bstrobe(bstrobe),
+       .do_a7_write(do_a7_write),
        .s00_axi_aclk(clk), .s00_axi_aresetn(aresetn),
        .s00_axi_awaddr(awaddr), .s00_axi_awvalid(awvalid),
        .s00_axi_awready(awready), .s00_axi_wdata(wdata),
@@ -70,7 +72,8 @@ module tb;
     myverilog mv
       (.clk(plclk), 
        .baddr(baddr), .bwrdata(bwrdata), .brddata(brddata),
-       .bwr(bwr), .bstrobe(bstrobe),
+       .bwr(bwr), .bstrobe(bstrobe), 
+       .do_a7_write(do_a7_write),
        .led(led));
 endmodule
 
