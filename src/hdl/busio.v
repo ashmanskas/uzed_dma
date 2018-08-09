@@ -36,7 +36,7 @@ module busfsm
     */
    reg [11:0] bytereg = 0;
    reg [39:0] wordreg = 0;
-   reg 	      execcmd = 0;
+   reg        execcmd = 0;
    reg        dbgtoggle = 0;
    reg [15:0] rdcount1 = 0, wrcount1 = 0, bytecount1 = 0;
    assign debug = bytereg;
@@ -47,15 +47,15 @@ module busfsm
    always @ (posedge clk) begin
       dbgtoggle <= ~dbgtoggle;
       if (bytereg[11] & !bytereg[1:0]) begin
-	 bytereg <= 12'b0;
-	 wordreg <= {wordreg[31:0], bytereg[9:2]};
-	 execcmd <= bytereg[10];
+         bytereg <= 12'b0;
+         wordreg <= {wordreg[31:0], bytereg[9:2]};
+         execcmd <= bytereg[10];
          bytecount1 <= bytecount1 + 1;
-	 //$strobe("%1d byte %2x", $time, bytereg[10:2]);
+         //$strobe("%1d byte %2x", $time, bytereg[10:2]);
       end else begin
-	 bytereg <= {bytereg[10:0], serialin};
-	 if (execcmd) wordreg <= 40'b0;
-	 execcmd <= 1'b0;
+         bytereg <= {bytereg[10:0], serialin};
+         if (execcmd) wordreg <= 40'b0;
+         execcmd <= 1'b0;
       end
       //if (execcmd) $strobe("%1d execcmd %10x", $time, wordreg);
    end
@@ -77,99 +77,62 @@ module busfsm
    always @ (posedge clk) begin
       fsm <= fsmnext;
       if (execcmd) 
-	{data, cmd} <= wordreg;
+        {data, cmd} <= wordreg;
       else if (fsm==DONE)
-	{data, cmd} <= 40'b0;
+        {data, cmd} <= 40'b0;
       ffwr <= (fsm==WRITE);
       ffwrdata <= data[31:16];
       ffaddr <= data[15:0];
       if (fsm==REPLY) begin
-	 replybits <= replybits-1;
-	 replyshift <= {replyshift, 1'b0};
+         replybits <= replybits-1;
+         replyshift <= {replyshift, 1'b0};
       end else if (fsm==WRITE) begin
-	 replybits <= 1*13-1;
-	 replyshift <= {3'b011, 8'h01, 2'b00, 24'b0};
+         replybits <= 1*13-1;
+         replyshift <= {3'b011, 8'h01, 2'b00, 24'b0};
          wrcount1 <= wrcount1 + 1;
       end else if (fsm==READB) begin
-	  ffrddata <= rddata;
+          ffrddata <= rddata;
       end else if (fsm==READC) begin
-	 replybits <= 3*13-1;
-	 replyshift <= {3'b010, ffrddata[15:8], 2'b00,
+         replybits <= 3*13-1;
+         replyshift <= {3'b010, ffrddata[15:8], 2'b00,
                         3'b010, ffrddata[7:0],  2'b00,
                         3'b011, 8'h02,          2'b00};
-	 $display("busfsm/READB: %1d rddata=%x", $time, rddata);
+         $display("busfsm/READB: %1d rddata=%x", $time, rddata);
          rdcount1 <= rdcount1 + 1;
       end else begin
-	 replybits <= 0;
-	 replyshift <= 0;
+         replybits <= 0;
+         replyshift <= 0;
       end
       ffserialout <= (fsm==REPLY ? replyshift[38] : 1'b0);
    end
    always @* begin
       fsmnext = IDLE;
       case (fsm)
-	  IDLE   : fsmnext = (execcmd ? DECODE : IDLE);
-	  DECODE : 
-	    begin
-		fsmnext = DONE;
-		if (cmd==8'h01) fsmnext = WRITE;
-		if (cmd==8'h02) fsmnext = READ;
-	    end
-	  WRITE  : fsmnext = REPLY;
-	  READ   : fsmnext = READA;
-	  READA  : fsmnext = READB;
-	  READB  : fsmnext = READC;
-	  READC  : fsmnext = REPLY;
-	  REPLY  : fsmnext = (replybits ? REPLY : DONE);
+          IDLE   : fsmnext = (execcmd ? DECODE : IDLE);
+          DECODE : 
+            begin
+                fsmnext = DONE;
+                if (cmd==8'h01) fsmnext = WRITE;
+                if (cmd==8'h02) fsmnext = READ;
+            end
+          WRITE  : fsmnext = REPLY;
+          READ   : fsmnext = READA;
+          READA  : fsmnext = READB;
+          READB  : fsmnext = READC;
+          READC  : fsmnext = REPLY;
+          REPLY  : fsmnext = (replybits ? REPLY : DONE);
           DONE   : fsmnext = IDLE;
       endcase // case (bytefsm)
-   end // always @ *
-
-
-   // // Chipscope integrated logic analyzer & controller
-   // wire [35:0] ila_control;
-   // wire [31:0]  ila_trig0;
-   // chipscope_ila ila(.CONTROL(ila_control), .CLK(clk), .TRIG0(ila_trig0));
-   // chipscope_icon icon(.CONTROL0(ila_control));
-   // assign ila_trig0[0] = serialin;
-   // assign ila_trig0[1] = serialout;
-   // assign ila_trig0[2] = wr;
-   // assign ila_trig0[3] = dbgtoggle;
-   // assign ila_trig0[6:4] = fsm[2:0];
-   // assign ila_trig0[7] = 1'b0;
-   // assign ila_trig0[15:8] = cmd[7:0];
-   // assign ila_trig0[31:16] = addr;
-
-
-
-
-
-endmodule // busfsm
+   end  // always @ *
+endmodule  // busfsm
    
-
-module busreg #( parameter MYADDR=0 )
-  (
-   input  wire        clk,
-   input  wire        wr,
-   input  wire [15:0] addr,
-   input  wire [15:0] wrdata,
-   output wire [15:0] rddata
-   );
-    reg [15:0] regdat = 0;
-    wire addrok = (addr==MYADDR);
-    assign rddata = addrok ? regdat : 16'bz;
-    always @ (posedge clk)
-      if (wr && addrok)
-	regdat <= wrdata;
-endmodule // busreg
- 
 module breg #( parameter MYADDR=0, W=16, PU=0 )
    (
     input  wire [1+1+16+16-1:0] i,
     output wire [15:0]          o,
     output wire [W-1:0]         q
     );
-    wire 	clk, wr;
+    wire        clk, wr;
     wire [15:0] addr, wrdata;
     wire [15:0] rddata;
    assign {clk, wr, addr, wrdata} = i;
@@ -182,7 +145,7 @@ module breg #( parameter MYADDR=0, W=16, PU=0 )
      if (wr && addrok)
        regdat <= wrdata[W-1:0];
    assign q = regdat;
-endmodule // breg
+endmodule  // breg
 
 module bror #( parameter MYADDR=0, W=16 )
    (
@@ -190,15 +153,14 @@ module bror #( parameter MYADDR=0, W=16 )
     output wire [15:0]          o,
     input  wire [W-1:0]         d
     );
-    wire 	clk, wr;
+    wire        clk, wr;
     wire [15:0] addr, wrdata;
     wire [15:0] rddata;
     assign {clk, wr, addr, wrdata} = i;
     assign o = {rddata};
     // boilerplate ends here
-    wire 	addrok = (addr==MYADDR);
+    wire        addrok = (addr==MYADDR);
     assign rddata = addrok ? d : 16'bz;
-endmodule // bror
+endmodule  // bror
 
 `default_nettype wire
-
