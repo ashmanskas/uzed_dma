@@ -24,7 +24,7 @@ set_property IOSTANDARD LVCMOS33 [get_ports {led[7]}]
 
 set_property PACKAGE_PIN K17 [get_ports {pl_clk}]
 set_property IOSTANDARD LVCMOS33 [get_ports {pl_clk}]
+create_clock -period 10 [get_ports {pl_clk}]
 
 set_property PACKAGE_PIN K18 [get_ports {pl_clk_en}]
 set_property IOSTANDARD LVCMOS33 [get_ports {pl_clk_en}]
-

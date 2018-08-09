@@ -94,6 +94,8 @@ make_bd_pins_external [get_bd_pins wja_bus_lite_0/bwrdata]
 make_bd_pins_external [get_bd_pins wja_bus_lite_0/brddata]
 make_bd_pins_external [get_bd_pins wja_bus_lite_0/bwr]
 make_bd_pins_external [get_bd_pins wja_bus_lite_0/bstrobe]
+make_bd_pins_external [get_bd_pins wja_bus_lite_0/do_a7_write]
+make_bd_pins_external [get_bd_pins wja_bus_lite_0/do_a7_read]
 endgroup
 regenerate_bd_layout
 validate_bd_design

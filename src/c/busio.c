@@ -62,6 +62,7 @@ busrd(int addr)
   assert(r!=0);
   // "bus" read operation
   r[9] = (addr & 0xffff) << 16;
+  assert(r[0x13]==0xdeadbeef);  // just for delay
   int rv = r[9];
   assert((rv>>16 & 0xffff)==addr);
   int data = rv & 0xffff;
@@ -71,39 +72,39 @@ busrd(int addr)
 int
 a7rd(int addr)
 {
-  int bytessent0 = busrd(0x0084);
-  int bytesseen0 = busrd(0x0083);
-  buswr(0x0082, addr>>8 & 0xff);
-  buswr(0x0082, addr    & 0xff);
-  buswr(0x0082, 0x0102);
+  if (!bus_r) bus_init();
+  size_t *r = bus_r;
+  assert(r!=0);
+  // int bytessent0 = busrd(0x0084);
+  // int bytesseen0 = busrd(0x0083);
+  r[0x0b] = (addr & 0xffff)<<16;
   assert(busrd(2)==0xdead);  // artificial delay
   assert(busrd(1)==0xbeef);  // artificial delay
-  int bytesseen_expect = (bytesseen0+3) & 0xffff;
-  int bytesseen1 = busrd(0x0083);
-  int bytessent1 = busrd(0x0084);
-  int status = busrd(0x0080);
+  // int bytesseen_expect = (bytesseen0+3) & 0xffff;
+  // int bytesseen1 = busrd(0x0083);
+  // int bytessent1 = busrd(0x0084);
+  // int status = busrd(0x0080);
   int data = busrd(0x0081);
-  if (bytesseen1!=bytesseen_expect ||
-      status!=2 || addr==0xffff ||
-      bytessent1!=((bytessent0+3)&0xffff)) {
-    printf("a7rd: a=%x bs0=%d bs1=%d bsexp=%d st=%x d=%x\n"
-	   "      bx0=%d bx1=%d dbx=%d\n",
-	   addr, bytesseen0, bytesseen1, bytesseen_expect,
-	   status, data, 
-	   bytessent0, bytessent1, (bytessent1-bytessent0)&0xffff);
-  }
+  // if (bytesseen1!=bytesseen_expect ||
+  //     status!=2 || addr==0xffff ||
+  //     bytessent1!=((bytessent0+3)&0xffff)) {
+  //   printf("a7rd: a=%x bs0=%d bs1=%d bsexp=%d st=%x d=%x\n"
+  //          "      bx0=%d bx1=%d dbx=%d\n",
+  //          addr, bytesseen0, bytesseen1, bytesseen_expect,
+  //          status, data, 
+  //          bytessent0, bytessent1, (bytessent1-bytessent0)&0xffff);
+  // }
   return data;
 }
 
 void
 a7wr(int addr, int data)
 {
+  if (!bus_r) bus_init();
+  size_t *r = bus_r;
+  assert(r!=0);
   int bytesseen0 = busrd(0x0083);
-  buswr(0x0082, data>>8 & 0xff);
-  buswr(0x0082, data    & 0xff);
-  buswr(0x0082, addr>>8 & 0xff);
-  buswr(0x0082, addr    & 0xff);
-  buswr(0x0082, 0x0101);
+  r[0x0a] = (addr & 0xffff)<<16 | (data & 0xffff);
   assert(busrd(2)==0xdead);  // artificial delay
   assert(busrd(1)==0xbeef);  // artificial delay
   int bytesseen_expect = (bytesseen0+1) & 0xffff;
