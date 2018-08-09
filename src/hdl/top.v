@@ -23,6 +23,8 @@ module top
     inout  wire        FIXED_IO_ps_clk,
     inout  wire        FIXED_IO_ps_porb,
     inout  wire        FIXED_IO_ps_srstb,
+    output wire        pl_clk_en,
+    input  wire        pl_clk,
     output wire [7:0]  led
     );
     wire clk0;
@@ -39,14 +41,15 @@ module top
        .FIXED_IO_mio(FIXED_IO_mio), .FIXED_IO_ps_clk(FIXED_IO_ps_clk),
        .FIXED_IO_ps_porb(FIXED_IO_ps_porb),
        .FIXED_IO_ps_srstb(FIXED_IO_ps_srstb),
-       .oclk(clk0), .plclk(clk0),
+       .oclk(clk0), .plclk(pl_clk),
        .baddr(baddr), .bwrdata(bwrdata), .brddata(brddata),
        .bwr(bwr), .bstrobe(bstrobe));
     myverilog mv
-      (.clk(clk0), 
+      (.clk(pl_clk), 
        .baddr(baddr), .bwrdata(bwrdata), .brddata(brddata),
        .bwr(bwr), .bstrobe(bstrobe),
        .led(led));
+    assign pl_clk_en = 1;
 endmodule
 
 `default_nettype wire
