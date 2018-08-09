@@ -133,12 +133,8 @@ class Tester(object):
         expecteq("", dut.last_rdata, self.bytessent)
         yield self.bus_rd(0x0083)  # bytesseen0
         expecteq("", dut.last_rdata, self.bytesseen)
-        yield self.bus_wr(0x0082, a>>8 & 0xff)
-        yield self.wait_clk(10)
-        yield self.bus_wr(0x0082, a    & 0xff)
-        yield self.wait_clk(10)
-        yield self.bus_wr(0x0082, 0x0102)
-        yield self.wait_clk(60)
+        yield self.axi_wr(0x0b, (a & 0xffff)<<16)
+        yield self.wait_clk(200)
         yield self.bus_rd(0x0083)  # bytesseen1
         expecteq("", dut.last_rdata, (self.bytesseen + 3) & 0xffff)
         self.bytesseen = Int(dut.last_rdata)
@@ -154,33 +150,6 @@ class Tester(object):
         dut.last_rdata = data
         
     @cocotb.coroutine
-    def s6_wr_old(self, a, d):
-        # Mimic 'a7_wr' code in busio.c
-        dut = self.dut
-        yield self.bus_rd(0x0084)  # bytessent0
-        expecteq("", dut.last_rdata, self.bytessent)
-        yield self.bus_rd(0x0083)  # bytesseen0
-        expecteq("", dut.last_rdata, self.bytesseen)
-        yield self.bus_wr(0x0082, d>>8 & 0xff)
-        yield self.wait_clk(10)
-        yield self.bus_wr(0x0082, d    & 0xff)
-        yield self.wait_clk(10)
-        yield self.bus_wr(0x0082, a>>8 & 0xff)
-        yield self.wait_clk(10)
-        yield self.bus_wr(0x0082, a    & 0xff)
-        yield self.wait_clk(10)
-        yield self.bus_wr(0x0082, 0x0101)
-        yield self.wait_clk(40)
-        yield self.bus_rd(0x0083)  # bytesseen1
-        expecteq("", dut.last_rdata, (self.bytesseen + 1) & 0xffff)
-        self.bytesseen = Int(dut.last_rdata)
-        yield self.bus_rd(0x0084)  # bytessent1
-        expecteq("", dut.last_rdata, (self.bytessent + 5) & 0xffff)
-        self.bytessent = Int(dut.last_rdata)
-        yield self.bus_rd(0x0080)  # status
-        expecteq("", dut.last_rdata, 0x0001)
-        
-    @cocotb.coroutine
     def s6_wr(self, a, d):
         # Mimic 'a7_wr' code in busio.c
         dut = self.dut
@@ -188,8 +157,7 @@ class Tester(object):
         expecteq("", dut.last_rdata, self.bytessent)
         yield self.bus_rd(0x0083)  # bytesseen0
         expecteq("", dut.last_rdata, self.bytesseen)
-        yield self.axi_wr(0x0a,
-                          (a & 0xffff)<<16 | (d & 0xffff))
+        yield self.axi_wr(0x0a, (a & 0xffff)<<16 | (d & 0xffff))
         yield self.wait_clk(200)
         yield self.bus_rd(0x0083)  # bytesseen1
         expecteq("", dut.last_rdata, (self.bytesseen + 1) & 0xffff)

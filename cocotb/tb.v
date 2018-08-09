@@ -51,11 +51,12 @@ module tb;
     wire [15:0] baddr, bwrdata, brddata;
     wire        bwr, bstrobe;
     wire        do_a7_write;
+    wire        do_a7_read;
     // Instantiate wja_bus_lite
     wja_bus_lite bl
       (.plclk(plclk), .baddr(baddr), .bwrdata(bwrdata), 
        .brddata(brddata), .bwr(bwr), .bstrobe(bstrobe),
-       .do_a7_write(do_a7_write),
+       .do_a7_write(do_a7_write), .do_a7_read(do_a7_read),
        .s00_axi_aclk(clk), .s00_axi_aresetn(aresetn),
        .s00_axi_awaddr(awaddr), .s00_axi_awvalid(awvalid),
        .s00_axi_awready(awready), .s00_axi_wdata(wdata),
@@ -73,7 +74,7 @@ module tb;
       (.clk(plclk), 
        .baddr(baddr), .bwrdata(bwrdata), .brddata(brddata),
        .bwr(bwr), .bstrobe(bstrobe), 
-       .do_a7_write(do_a7_write),
+       .do_a7_write(do_a7_write), .do_a7_read(do_a7_read),
        .led(led));
 endmodule
 

@@ -16,6 +16,7 @@ module myverilog
    output wire [15:0] brddata,
    input  wire        bwr, bstrobe,
    input  wire        do_a7_write,
+   input  wire        do_a7_read,
    // ## I/O pins start here: ##
    output wire [7:0]  led
    );
@@ -86,6 +87,14 @@ module myverilog
                            3'b010, baddr[7:0],    2'b00,
                            3'b011, 8'h01,         2'b00};
             bytessent <= bytessent + 5;
+            newrequest <= 1;
+        end else if (do_a7_read) begin
+            a7shiftout <= {3'b010, baddr[15:8],   2'b00,
+                           3'b010, baddr[7:0],    2'b00,
+                           3'b011, 8'h02,         2'b00,
+                           3'b000, 8'h00,         2'b00,
+                           3'b000, 8'h00,         2'b00};
+            bytessent <= bytessent + 3;
             newrequest <= 1;
         end else begin
             a7shiftout <= {a7shiftout,1'b0};
