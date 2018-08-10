@@ -175,7 +175,7 @@ class Tester(object):
         yield self.axi_rd(0x13)
         expecteq("", dut.last_rdata, 0xdeadbeef)
         yield self.axi_wr(0x09, (a & 0xffff)<<16)
-        yield self.wait_clk(10)
+        yield self.wait_clk(15)
         yield self.axi_rd(0x09)
         expecteq("", dut.bl.last_rdaddr, a)
         data = Int(dut.last_rdata) & 0xffff
@@ -192,7 +192,7 @@ class Tester(object):
         expecteq("", dut.last_rdata, 0xdeadbeef)
         yield self.axi_wr(0x08,
                           (a & 0xffff)<<16 | (d & 0xffff))
-        yield self.wait_clk(12)
+        yield self.wait_clk(15)
 
     @cocotb.coroutine
     def axi_rd(self, a, rv=None):

@@ -239,8 +239,10 @@ module wja_bus_lite
     always @ (posedge clk) begin
         ticks <= ticks + 1;
     end
+    wire [31:0] syncdebug;
     always @(*) begin
         case (axi_araddr[7:2])  // address decode for reading registers
+            'h07    : reg_data_out <= syncdebug;
             'h08    : reg_data_out <= 0;  // buswr{addr,data}
             'h09    : reg_data_out <= {last_rdaddr,last_rddata};
                                           // busrd{addr,data}
@@ -285,11 +287,11 @@ module wja_bus_lite
     wire w08_plclk_sync;  // synchronize write strobe to 'plclk'
     wjabl_pulse_synchronizer ps08
       (.clka(clk), .ain(slv_reg_wren && axi_awaddr[7:2]=='h08),
-       .clkb(plclk), .bout(w08_plclk_sync));
+       .clkb(plclk), .bout(w08_plclk_sync), .dbg(syncdebug[15:0]));
     wire w09_plclk_sync;
     wjabl_pulse_synchronizer ps09
       (.clka(clk), .ain(slv_reg_wren && axi_awaddr[7:2]=='h09),
-       .clkb(plclk), .bout(w09_plclk_sync));
+       .clkb(plclk), .bout(w09_plclk_sync), .dbg(syncdebug[31:16]));
     wire w0a_plclk_sync;
     wjabl_pulse_synchronizer ps0a
       (.clka(clk), .ain(slv_reg_wren && axi_awaddr[7:2]=='h0a),
@@ -389,30 +391,40 @@ endmodule
 
 
 module wjabl_pulse_synchronizer
-  (input  wire clka,
-   input  wire ain,
-   input  wire clkb,
-   output wire bout
+  (input  wire        clka,
+   input  wire        ain,
+   input  wire        clkb,
+   output wire        bout,
+   output wire [15:0] dbg
    );
     localparam IDLE=1, HIGH=2, DONE=4;
     reg [2:0] afsm=0;         // fsm A state
     reg [2:0] afsm_sync0b=0;  // intermediate synchronizer
+    reg [2:0] afsm_sync1b=0;  // intermediate synchronizer
     reg [2:0] afsm_syncb=0;   // fsm A state, synchonized to clock B
+    reg [7:0] acount=0;
     reg [1:0] bfsm=0;         // fsm B state
     reg [1:0] bfsm_sync0a=0;  // intermediate synchronizer
+    reg [1:0] bfsm_sync1a=0;  // intermediate synchronizer
     reg [1:0] bfsm_synca=0;   // fsm B state, synchonized to clock A
+    reg [7:0] bcount=0;
     wire atimeout;            // resets fsm A if timer expires
+    assign dbg = {acount, bcount};
     // This synchronous logic is synchronous to clock A
     always @ (posedge clka) begin
         // Synchronize B fsm state into clock domain A
         bfsm_sync0a <= bfsm;
-        bfsm_synca  <= bfsm_sync0a;
+        bfsm_sync1a <= bfsm_sync0a;
+        bfsm_synca  <= bfsm_sync1a;
     end
     always @ (posedge clka) begin
         case (afsm)
             IDLE: 
               begin
-                  if (ain) afsm <= HIGH;
+                  if (ain) begin
+                      afsm <= HIGH;
+                      acount <= acount + 1;
+                  end
               end
             HIGH:
               begin
@@ -453,14 +465,18 @@ module wjabl_pulse_synchronizer
     always @ (posedge clkb) begin
         // Synchronize A fsm state into clock domain B
         afsm_sync0b <= afsm;
-        afsm_syncb  <= afsm_sync0b;
+        afsm_sync1b <= afsm_sync0b;
+        afsm_syncb  <= afsm_sync1b;
     end
     always @ (posedge clkb) begin
         case (bfsm)
             IDLE: 
               begin
                   bpulse <= 0;
-                  if (afsm_syncb==HIGH) bfsm <= HIGH;
+                  if (afsm_syncb==HIGH) begin
+                      bfsm <= HIGH;
+                      bcount <= bcount + 1;
+                  end
               end
             HIGH:
               begin
