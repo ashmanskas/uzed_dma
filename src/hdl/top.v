@@ -31,7 +31,8 @@ module top
     wire [15:0] baddr, bwrdata, brddata;
     wire bwr, bstrobe;
     wire do_a7_write, do_a7_read;
-    wire plclk = clk0;
+    // wire plclk = clk0;
+    wire plclk = pl_clk;
     bd_wrapper bd_wrapper_inst
       (.DDR_addr(DDR_addr), .DDR_ba(DDR_ba), .DDR_cas_n(DDR_cas_n),
        .DDR_ck_n(DDR_ck_n), .DDR_ck_p(DDR_ck_p), .DDR_cke(DDR_cke),

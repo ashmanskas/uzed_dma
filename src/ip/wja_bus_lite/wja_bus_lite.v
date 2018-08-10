@@ -304,7 +304,7 @@ module wja_bus_lite
     reg [1:0] fsm=0;
     reg [15:0] baddr_ff=0, bwrdata_ff=0;
     reg bwr_ff=0, bstrobe_ff=0, do_a7_write_ff=0, do_a7_read_ff=0;
-    always @(posedge clk) begin
+    always @(posedge plclk) begin
         case (fsm)
             IDLE: 
               begin
@@ -398,6 +398,7 @@ module wjabl_pulse_synchronizer
    output wire [15:0] dbg
    );
     localparam IDLE=1, HIGH=2, DONE=4;
+    reg       ain_ff=0;       // register the 'ain' signal with clka
     reg [2:0] afsm=0;         // fsm A state
     reg [2:0] afsm_sync0b=0;  // intermediate synchronizer
     reg [2:0] afsm_sync1b=0;  // intermediate synchronizer
@@ -412,6 +413,9 @@ module wjabl_pulse_synchronizer
     assign dbg = {acount, bcount};
     // This synchronous logic is synchronous to clock A
     always @ (posedge clka) begin
+        // Register the 'ain' signal (which is already in the clka 
+        // domain) with clka
+        ain_ff <= ain;
         // Synchronize B fsm state into clock domain A
         bfsm_sync0a <= bfsm;
         bfsm_sync1a <= bfsm_sync0a;
@@ -421,7 +425,7 @@ module wjabl_pulse_synchronizer
         case (afsm)
             IDLE: 
               begin
-                  if (ain) begin
+                  if (ain_ff) begin
                       afsm <= HIGH;
                       acount <= acount + 1;
                   end
@@ -475,7 +479,6 @@ module wjabl_pulse_synchronizer
                   bpulse <= 0;
                   if (afsm_syncb==HIGH) begin
                       bfsm <= HIGH;
-                      bcount <= bcount + 1;
                   end
               end
             HIGH:
@@ -493,6 +496,9 @@ module wjabl_pulse_synchronizer
                   bfsm <= IDLE;
               end
         endcase
+    end
+    always @ (posedge clkb) begin
+        if (bpulse) bcount <= bcount + 1;
     end
 endmodule
 
