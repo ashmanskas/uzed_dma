@@ -110,31 +110,22 @@ int main() {
   // Memory map AXI Lite register block
   unsigned int* virtual_address =
     mmap(NULL, 65535, PROT_READ | PROT_WRITE, MAP_SHARED, dh, 0x40400000);
-  // Memory map source address
-  unsigned int* virtual_source_address =
-    mmap(NULL, 65535, PROT_READ | PROT_WRITE, MAP_SHARED, dh, 0x0e000000);
   // Memory map destination address
   unsigned int* virtual_destination_address =
     mmap(NULL, 65535, PROT_READ | PROT_WRITE, MAP_SHARED, dh, 0x0f000000);
-  virtual_source_address[0]= 0x11223344; // Write random stuff to source block
   memset(virtual_destination_address, 0, 32); // Clear destination block
   printf("Destination memory block:\n");
   memdump(virtual_destination_address, 32);
   dma_set(virtual_address, S2MM_CONTROL_REGISTER, 4);
-  dma_set(virtual_address, MM2S_CONTROL_REGISTER, 4);
   dma_set(virtual_address, S2MM_CONTROL_REGISTER, 0);
-  dma_set(virtual_address, MM2S_CONTROL_REGISTER, 0);
   dma_set(virtual_address, S2MM_DESTINATION_ADDRESS, 0x0f000000); 
-  dma_set(virtual_address, MM2S_START_ADDRESS, 0x0e000000); 
   dma_set(virtual_address, S2MM_CONTROL_REGISTER, 0xf001);
-  dma_set(virtual_address, MM2S_CONTROL_REGISTER, 0xf001);
   dma_set(virtual_address, S2MM_LENGTH, 256);
   printf("Waiting for S2MM sychronization...\n");
-  // If this locks up make sure all memory ranges are assigned
-  // under Address Editor!
+  // If this locks up check memory ranges are assigned in address editor
   dma_s2mm_sync(virtual_address); 
   dma_s2mm_status(virtual_address);
   printf("Destination memory block:\n");
   memdump(virtual_destination_address, 32);
-  printf("edited 2019-02-01 16:55\n");
+  printf("edited 2019-02-01 17:08\n");
 }
