@@ -36,6 +36,14 @@ module myverilog
     always @ (posedge clk) ticks <= ticks + 1;
     zror #(16'h0005) r0005(ibus, obus, ticks);
     zror #(16'h0006) r0006(ibus, obus, 16'h3333);
+
+    // simple mechanism to compile a timestamp into the firmware;
+    // before recompiling, run 'python fw_timestamp.py'
+`include "fw_timestamp.v"
+    bror #('h0010) r0010(ibus, obus, fw_yyyy);
+    bror #('h0011) r0011(ibus, obus, fw_mmdd);
+    bror #('h0012) r0012(ibus, obus, fw_hhmm);
+
     // ======================================================================
     // mimic serialized Microzed-to-Spartan6 I/O here, so that I can use
     // this code as a platform for making a much faster protocol
