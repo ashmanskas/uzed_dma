@@ -35,6 +35,7 @@ module myverilog
     reg [15:0] ticks = 0;
     always @ (posedge clk) ticks <= ticks + 1;
     zror #(16'h0005) r0005(ibus, obus, ticks);
+    zror #(16'h0006) r0006(ibus, obus, 16'h3333);
     // ======================================================================
     // mimic serialized Microzed-to-Spartan6 I/O here, so that I can use
     // this code as a platform for making a much faster protocol
@@ -136,6 +137,7 @@ module fake_spartan6
     reg [15:0] ticks = 0;
     always @ (posedge clk) ticks <= ticks + 1;
     bror #('h0005) r0005(ibus, obus, ticks);
+    bror #('h0006) r0006(ibus, obus, 16'h6666);
 endmodule  // fake_spartan6
 
 // a read/write register to live on the "bus"
