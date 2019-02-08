@@ -235,9 +235,16 @@ module wja_bus_lite
             end
         end
     end
+    reg [31:0] plticks = 0;
+    always @ (posedge plclk) begin
+        plticks <= plticks + 1;
+    end
     reg [31:0] ticks = 0;
+    reg [31:0] plticks_ff0 = 0, plticks_ff = 0;
     always @ (posedge clk) begin
         ticks <= ticks + 1;
+        plticks_ff0 <= plticks;
+        plticks_ff  <= plticks_ff0;
     end
     wire [31:0] syncdebug;
     always @(*) begin
@@ -251,8 +258,9 @@ module wja_bus_lite
             'h13    : reg_data_out <= 32'hdeadbeef;
             'h14    : reg_data_out <= 32'h12345678;
             'h15    : reg_data_out <= 32'h87654321;
-            'h16    : reg_data_out <= 32'h07301751;
+            'h16    : reg_data_out <= 32'h02081426;
             'h17    : reg_data_out <= ticks;
+            'h18    : reg_data_out <= plticks_ff;
             default : reg_data_out <= slv_reg[axi_araddr[7:2]];
         endcase
     end
